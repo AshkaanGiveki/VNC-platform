@@ -1,0 +1,46 @@
+@import '../../../styles/variables';
+.container {
+  width: 100%;
+}
+.title {
+  text-align: center;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+  font-size: 1.4rem;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.captcha {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+.captchaLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.submitBtn {
+  width: 100%;
+  padding: 12px;
+}
+.links {
+  text-align: center;
+  a {
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+}
+.footerText {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 20px;
+}

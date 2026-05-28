@@ -1,0 +1,44 @@
+// CSS custom properties (theme colors)
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-sidebar: #ffffff;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --accent: #0d6efd;
+  --accent-hover: #0b5ed7;
+  --border: #dee2e6;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --card-bg: #ffffff;
+  --gradient-start: #4e8cff;
+  --gradient-end: #0d6efd;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #1a1c23;
+  --bg-secondary: #2d2f3a;
+  --bg-sidebar: #1e1f28;
+  --text-primary: #e4e6eb;
+  --text-secondary: #b0b3b8;
+  --accent: #4e8cff;
+  --accent-hover: #3a7be0;
+  --border: #3e4049;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --card-bg: #2d2f3a;
+  --gradient-start: #3a7be0;
+  --gradient-end: #1a5dc7;
+}
+
+// SCSS variables for easy use
+$font-family: 'IRANSansXFaNum', 'Vazir', 'Tahoma', sans-serif;
+$font-size-base: 14px;
+$font-size-lg: 16px;
+$font-size-sm: 12px;
+$border-radius: 8px;
+$transition: 0.2s ease;
+
+// Breakpoints
+$bp-mobile: 576px;
+$bp-tablet: 768px;
+$bp-desktop: 1024px;
+$bp-wide: 1200px;

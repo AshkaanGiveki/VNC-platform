@@ -1,0 +1,105 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    cursor: pointer;
+
+    .topPart {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 10px;
+        height: 30px;
+        margin-bottom: 10px;
+
+        h4 {
+            font-weight: 700;
+            font-size: 1.1rem;
+            // margin-bottom: 10px;
+            height: 30px;
+            line-height: 30px;
+        }
+
+        .unreadIndicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+        }
+    }
+
+    p {
+        font-weight: 400;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+    }
+
+    .category{
+        height: 30px;
+        line-height: 30px;
+        padding: 0 15px;
+        border-radius: 30px;
+        border: 1px solid var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.85rem;
+        
+        &.info{
+            background-color: #478ec811;
+            color: #478ec8;
+            border-color: #478ec8;
+        }
+
+        &.system{
+            background-color: #aaa1;
+            color: #aaa;
+            border-color: #aaa;
+        }
+        
+        &.warning{
+            background-color: #d78b3a11;
+            color: #d78b3a;
+            border-color: #d78b3a;
+        }
+
+        &.session{
+            background-color: #0c9e5311;
+            color: #0c9e53;
+            border-color: #0c9e53;
+        }
+        
+        &.policy{
+            background-color: #8310bc11;
+            color: #8310bc;
+            border-color: #8310bc;
+        }
+
+        &.security{
+            background-color: #730c3211;
+            color: #730c32;
+            border-color: #730c32;
+        }
+    }
+}
+
+.unread {
+    border-right: 12px solid var(--text-secondary);
+}
+
+.date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}

@@ -1,0 +1,72 @@
+@import 'variables';
+@import 'mixins';
+@import 'rtl';
+@import 'fonts';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.dark img{
+  filter: invert(1);
+}
+
+*{
+  // transition: all ease-in-out 300ms;
+}
+
+
+html {
+  font-size: $font-size-base;
+  direction: rtl; // Persian RTL
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+*{
+    font-family: 'IRANSansXFaNum';
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+// Scrollbar
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+// Framer Motion page transition
+.page-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+.page-exit {
+  opacity: 1;
+}
+.page-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 300ms, transform 300ms;
+}
+.rtl-toast{
+    min-width:200px;
+    min-height: 40px;
+    
+}

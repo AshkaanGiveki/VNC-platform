@@ -1,0 +1,6 @@
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.userCard { display: flex; justify-content: space-between; align-items: center; }
+.actions { display: flex; gap: 8px; }
+.form { display: flex; flex-direction: column; gap: 16px; }
+.modalActions { display: flex; gap: 10px; justify-content: flex-end; }

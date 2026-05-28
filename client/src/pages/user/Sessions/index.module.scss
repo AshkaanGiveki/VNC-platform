@@ -1,0 +1,53 @@
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.buttonImg{
+    width:30px;
+    height: 30px;
+    border-radius: 100%;;
+    border: 1px solid var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all ease-in-out 300ms;
+
+    &:hover{
+        opacity: 1;
+    }
+
+    >img{
+        width:12px;
+        height: 12px;
+    }
+}
+
+.status {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 6px;
+}
+
+.stopped {
+    color: #e74c3c;
+    font-size: 0.85rem;
+    font-weight: 700;
+}

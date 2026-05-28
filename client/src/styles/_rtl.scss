@@ -1,0 +1,17 @@
+[dir='rtl'] {
+  text-align: right;
+  .sidebar {
+    right: 0;
+    left: auto;
+  }
+  .main-content {
+    margin-right: 250px;
+    margin-left: 0;
+  }
+  .close-sidebar .main-content {
+    margin-right: 80px;
+  }
+  // Flip margins/paddings for RTL where needed
+  .ms-auto { margin-right: auto !important; margin-left: 0 !important; }
+  .me-auto { margin-left: auto !important; margin-right: 0 !important; }
+}

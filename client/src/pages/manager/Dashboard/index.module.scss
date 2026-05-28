@@ -1,0 +1,10 @@
+.dashboard {
+  h1 { margin-bottom: 20px; }
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+  p { font-size: 2rem; color: var(--accent); }
+}

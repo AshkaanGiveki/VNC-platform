@@ -1,0 +1,49 @@
+@import '../../../styles/variables';
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 90;
+}
+
+.right {
+  .greeting {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+
+.notifIcon, .profileIcon, .logoutIcon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  opacity: 0.6;
+
+  &:hover{
+    opacity: 1;
+  }
+}
+
+.logoutBtn {
+  font-size: 0.9rem;
+  background: var(--accent);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+
+  &:hover {
+    background: var(--accent-hover);
+  }
+}

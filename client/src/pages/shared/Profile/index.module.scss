@@ -1,0 +1,10 @@
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+  h1 { margin-bottom: 24px; }
+}
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
