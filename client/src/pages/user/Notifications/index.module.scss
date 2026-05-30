@@ -9,6 +9,10 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    &.noItem{
+        justify-content: center;
+        align-items: center;
+    }
 }
 
 .card {
@@ -33,9 +37,9 @@
             line-height: 30px;
         }
 
-        .unreadIndicator {
-            width: 6px;
-            height: 6px;
+        .indicator {
+            width: 0px;
+            height: 0px;
             border-radius: 50%;
             background-color: var(--text-secondary);
         }
@@ -93,6 +97,11 @@
             border-color: #730c32;
         }
     }
+
+    &.unread .topPart .indicator{
+        width: 6px;
+        height: 6px;
+    }
 }
 
 .unread {
@@ -103,3 +112,28 @@
     font-size: 0.75rem;
     color: var(--text-secondary);
 }
+
+// Animation for read state
+.card {
+  transition: border-right-width 300ms ease;           // smooth border shrink
+  border-right: 0px solid var(--text-secondary);       // initial (overrides .unread if present)
+  &.unread {
+    border-right-width: 12px;
+  }
+  &.read {
+    border-right-width: 0px;
+  }
+}
+
+// .unreadIndicator {
+//   width: 6px;
+//   height: 6px;
+//   border-radius: 50%;
+//   background-color: var(--text-secondary);
+//   transition: width 300ms ease, height 300ms ease, background-color 300ms ease;
+//   &.readIndicator {
+//     width: 0;
+//     height: 0;
+//     background-color: transparent;
+//   }
+// }

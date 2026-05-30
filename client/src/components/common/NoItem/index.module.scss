@@ -1,0 +1,25 @@
+.noItemContainer{
+    width:60%;
+    height: 60%;
+    min-width: 200px;
+    min-height: 200px;
+    max-width: 400px;
+    max-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap:15px;
+    padding: 20px;
+    margin: 0 auto;
+
+    .img{
+        width: 100%;
+        aspect-ratio: auto;
+    }
+
+    .text{
+        font-weight: 800;
+        font-size: 2rem;
+    }
+}

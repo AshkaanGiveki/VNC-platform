@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { toJalali } from '../../../utils/formatDate';
 import styles from './index.module.scss';
 import { notificationCategories } from '../../../locales/fa';
+import NoItem from '../../../components/common/NoItem';
 
 export default function UserNotifications() {
   const queryClient = useQueryClient();
@@ -53,43 +54,45 @@ export default function UserNotifications() {
         variants={{ show: { transition: { staggerChildren: 0.05 } } }}
         className={styles.list}
       >
-        {data?.data?.data?.map((n) => (
-          <motion.div
-            key={n._id}
-            variants={{
-              hidden: { opacity: 0, x: -20 },
-              show: { opacity: 1, x: 0 },
-            }}
-          >
-            <Card
-              className={`${styles.card} ${isUnread(n) ? styles.unread : ''}`} onClick={() => markReadMutation.mutate(n._id)}
-            >
-              <div>
-                <span className={styles.topPart}>
-                  <h4>{n.title}</h4>
-                  {isUnread(n) && (
-                    <div className={styles.unreadIndicator}></div>
-                  )}
-                </span>
-                <p>{n.body}</p>
-                <span className={styles.date}>{toJalali(n.createdAt)}</span>
-              </div>
-              <div>
-                <div className={styles.category + ' ' + styles[n.category]}>{notificationCategories[n.category] || n.category}</div>
 
-                {/* {isUnread(n) && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => markReadMutation.mutate(n._id)}
-                  >
-                    خواندم
-                  </Button>
-                )} */}
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+        {data?.data?.data?.length === 0 ?
+          <div className={styles.noItem}>
+            <NoItem />
+          </div> :
+          data?.data?.data?.map((n) => {
+            const unread = isUnread(n);
+            return (
+              <motion.div
+                key={n._id}
+                variants={{
+                  hidden: { opacity: 0, x: -20 },
+                  show: { opacity: 1, x: 0 },
+                }}
+              >
+                <Card
+                  className={`${styles.card} ${unread ? styles.unread : styles.read}`}
+                  onClick={() => markReadMutation.mutate(n._id)}
+                >
+                  <div>
+                    <span className={styles.topPart}>
+                      <h4>{n.title}</h4>
+                      {/* Always render the indicator so it can shrink */}
+                      <div
+                        className={styles.indicator}
+                      ></div>
+                    </span>
+                    <p>{n.body}</p>
+                    <span className={styles.date}>{toJalali(n.createdAt)}</span>
+                  </div>
+                  <div>
+                    <div className={`${styles.category} ${styles[n.category] || ''}`}>
+                      {notificationCategories[n.category] || n.category}
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            );
+          })}
       </motion.div>
     </div>
   );

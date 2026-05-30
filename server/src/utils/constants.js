@@ -11,6 +11,7 @@ const ROLES = Object.freeze({
 });
 
 const SESSION_STATUS = Object.freeze({
+  STARTING: 'starting',   // <-- new
   RUNNING: 'running',
   STOPPED: 'stopped',
   PAUSED: 'paused',

@@ -82,7 +82,7 @@ export default function Sidebar() {
                       }}
                     />
                   )}
-                  <img className={styles.icon} src={item.icon} />
+                  <img className={`${styles.icon} icon`} src={item.icon} />
                   {sidebarOpen && (
                     <span className={styles.label}>{item.label}</span>
                   )}

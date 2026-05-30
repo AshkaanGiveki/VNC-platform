@@ -42,4 +42,5 @@ export const sessionStatus = {
   stopped: 'پایان یافته',
   paused: 'توقف موقت',
   failed: 'شکست خورده',
+  starting: 'در حال آماده‌سازی'
   };

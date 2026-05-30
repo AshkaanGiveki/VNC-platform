@@ -141,6 +141,12 @@ export default function Images() {
             required
           />
           <FormField
+            label="آیکون (URL)"
+            value={form.iconUrl}
+            onChange={(e) => setForm({ ...form, iconUrl: e.target.value })}
+            placeholder="https://example.com/icon.png"
+          />
+          <FormField
             label="نسخه"
             value={form.version}
             onChange={(e) => setForm({ ...form, version: e.target.value })}
