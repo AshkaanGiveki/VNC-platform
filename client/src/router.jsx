@@ -7,6 +7,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import { lazy, Suspense } from 'react';
 import Loader from './components/common/Loader';
 import apiClient from './services/apiClient';
+import SendNotification from './pages/admin/SendNotification';
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
@@ -27,6 +28,8 @@ const Recordings = lazy(() => import('./pages/user/Recordings'));
 const Notifications = lazy(() => import('./pages/user/Notifications'));
 const Profile = lazy(() => import('./pages/shared/Profile'));
 const NotFound = lazy(() => import('./pages/shared/NotFound'));
+const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
+const ManagerNotifications = lazy(() => import('./pages/manager/Notifications'));
 
 // Ensure user object exists, fetch if necessary
 async function ensureUser() {
@@ -73,7 +76,9 @@ export const router = createBrowserRouter([
       { path: '/admin/organizations', element: <SuspenseWrapper><Organizations /></SuspenseWrapper> },
       { path: '/admin/images', element: <SuspenseWrapper><Images /></SuspenseWrapper> },
       { path: '/admin/logs', element: <SuspenseWrapper><Logs /></SuspenseWrapper> },
-    ],
+      { path: '/admin/sendnotifications', element: <SuspenseWrapper><SendNotification /></SuspenseWrapper> },
+      { path: '/admin/notifications', element: <SuspenseWrapper><AdminNotifications /></SuspenseWrapper> },
+      ],
   },
   {
     element: <DashboardLayout />,
@@ -83,6 +88,8 @@ export const router = createBrowserRouter([
       { path: '/manager/users', element: <SuspenseWrapper><Users /></SuspenseWrapper> },
       { path: '/manager/workspaces', element: <SuspenseWrapper><Workspaces /></SuspenseWrapper> },
       { path: '/manager/policies', element: <SuspenseWrapper><Policies /></SuspenseWrapper> },
+      { path: '/manager/notifications', element: <SuspenseWrapper><ManagerNotifications /></SuspenseWrapper> },
+    
     ],
   },
   {

@@ -1,9 +1,99 @@
+// import { useQuery } from '@tanstack/react-query';
+// import { getOrganizations } from '../../../services/orgService';
+// import { getImages } from '../../../services/imageService';
+// import { getUserSessions } from '../../../services/sessionService'; // global sessions? We'll create a summary endpoint, but for now use admin logs? Better: add a backend summary endpoint.
+// // For now we'll use the aggregated data from organizations and sessions list limited to all.
+// import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
+// import Card from '../../../components/common/Card';
+// import Loader from '../../../components/common/Loader';
+// import { motion } from 'framer-motion';
+// import styles from './index.module.scss';
+
+// export default function AdminDashboard() {
+//   const { data: orgs, isLoading: loadingOrgs } = useQuery({
+//     queryKey: ['organizations'],
+//     queryFn: () => getOrganizations({ limit: 100 }),
+//   });
+//   const { data: images, isLoading: loadingImages } = useQuery({
+//     queryKey: ['images'],
+//     queryFn: () => getImages(),
+//   });
+//   // For sessions, we'll query each organization? Not scalable. We'll add a backend summary endpoint later.
+//   // Placeholder dynamic data: we'll calculate from orgs.
+  
+//   if (loadingOrgs || loadingImages) return <Loader fullScreen />;
+
+//   const orgList = orgs?.data?.data || [];
+//   const imageList = images?.data?.data || [];
+//   const totalOrgs = orgList.length;
+//   const totalImages = imageList.length;
+//   const enabledImages = imageList.filter(img => img.isEnabled).length;
+  
+//   // Mock session data – in production you'd fetch a summary
+//   const sessionData = [
+//     { name: 'فعال', value: 42 },
+//     { name: 'متوقف', value: 18 },
+//   ];
+//   const COLORS = ['#4e8cff', '#f39c12'];
+
+//   return (
+//     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={styles.dashboard}>
+//       <h1>داشبورد سوپرادمین</h1>
+//       <div className={styles.statsGrid}>
+//         <Card className={styles.statCard}>
+//           <h3>سازمان‌ها</h3>
+//           <p className={styles.statValue}>{totalOrgs}</p>
+//         </Card>
+//         <Card className={styles.statCard}>
+//           <h3>تصاویر</h3>
+//           <p className={styles.statValue}>{totalImages}</p>
+//           <small>{enabledImages} فعال</small>
+//         </Card>
+//         <Card className={styles.statCard}>
+//           <h3>نشست‌های فعال</h3>
+//           <p className={styles.statValue}>-</p>
+//           <small>نیاز به endpoint تجمیعی</small>
+//         </Card>
+//       </div>
+
+//       <div className={styles.chartsGrid}>
+//         <Card>
+//           <h3>تعداد کاربران بر اساس سازمان</h3>
+//           <ResponsiveContainer width="100%" height={250}>
+//             <BarChart data={orgList.map(o => ({ name: o.name, maxUsers: o.settings?.maxUsers || 0 }))}>
+//               <CartesianGrid strokeDasharray="3 3" />
+//               <XAxis dataKey="name" />
+//               <YAxis allowDecimals={false} />
+//               <Tooltip />
+//               <Bar dataKey="maxUsers" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+//             </BarChart>
+//           </ResponsiveContainer>
+//         </Card>
+//         <Card>
+//           <h3>وضعیت نشست‌ها (کل پلتفرم)</h3>
+//           <ResponsiveContainer width="100%" height={250}>
+//             <PieChart>
+//               <Pie data={sessionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+//                 {sessionData.map((entry, index) => (
+//                   <Cell key={index} fill={COLORS[index % COLORS.length]} />
+//                 ))}
+//               </Pie>
+//               <Tooltip />
+//               <Legend />
+//             </PieChart>
+//           </ResponsiveContainer>
+//         </Card>
+//       </div>
+//     </motion.div>
+//   );
+// }
+
 import { useQuery } from '@tanstack/react-query';
 import { getOrganizations } from '../../../services/orgService';
-import { getUsers } from '../../../services/userService'; // This will need an orgId? For superadmin, we can't list all users at once without special endpoint. We'll simulate or use logs.
-// For now, we'll use static data or mock until backend has aggregate endpoints.
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
-import Chart from '../../../components/common/Chart';
+import { getImages } from '../../../services/imageService';
+import { getUserSessions } from '../../../services/sessionService'; // global sessions? We'll create a summary endpoint, but for now use admin logs? Better: add a backend summary endpoint.
+// For now we'll use the aggregated data from organizations and sessions list limited to all.
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
 import Card from '../../../components/common/Card';
 import Loader from '../../../components/common/Loader';
 import { motion } from 'framer-motion';
@@ -14,95 +104,75 @@ export default function AdminDashboard() {
     queryKey: ['organizations'],
     queryFn: () => getOrganizations({ limit: 100 }),
   });
+  const { data: images, isLoading: loadingImages } = useQuery({
+    queryKey: ['images'],
+    queryFn: () => getImages(),
+  });
+  // For sessions, we'll query each organization? Not scalable. We'll add a backend summary endpoint later.
+  // Placeholder dynamic data: we'll calculate from orgs.
+  
+  if (loadingOrgs || loadingImages) return <Loader fullScreen />;
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  };
-
-  // Simulated data for charts (would come from aggregate endpoints)
-  const orgData = orgs?.data?.data?.map(org => ({ name: org.name, users: org.settings.maxUsers })) || [];
+  const orgList = orgs?.data?.data || [];
+  const imageList = images?.data?.data || [];
+  const totalOrgs = orgList.length;
+  const totalImages = imageList.length;
+  const enabledImages = imageList.filter(img => img.isEnabled).length;
+  
+  // Mock session data – in production you'd fetch a summary
   const sessionData = [
     { name: 'فعال', value: 42 },
     { name: 'متوقف', value: 18 },
-    { name: 'در انتظار', value: 5 },
   ];
-  const COLORS = ['#4e8cff', '#f39c12', '#e74c3c'];
-
-  if (loadingOrgs) return <Loader fullScreen />;
+  const COLORS = ['#4e8cff', '#f39c12'];
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className={styles.dashboard}
-    >
-      <motion.div variants={item}>
-        <h1 className={styles.pageTitle}>داشبورد سوپرادمین</h1>
-      </motion.div>
-
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={styles.dashboard}>
+      <h1>داشبورد سوپرادمین</h1>
       <div className={styles.statsGrid}>
-        <motion.div variants={item}>
-          <Card className={styles.statCard}>
-            <h3>سازمان‌ها</h3>
-            <p className={styles.statValue}>{orgs?.data?.meta?.total || 0}</p>
-          </Card>
-        </motion.div>
-        <motion.div variants={item}>
-          <Card className={styles.statCard}>
-            <h3>کاربران فعال</h3>
-            <p className={styles.statValue}>-</p>
-          </Card>
-        </motion.div>
-        <motion.div variants={item}>
-          <Card className={styles.statCard}>
-            <h3>نشست‌های جاری</h3>
-            <p className={styles.statValue}>42</p>
-          </Card>
-        </motion.div>
-        <motion.div variants={item}>
-          <Card className={styles.statCard}>
-            <h3>تصاویر</h3>
-            <p className={styles.statValue}>-</p>
-          </Card>
-        </motion.div>
+        <Card className={styles.statCard}>
+          <h3>سازمان‌ها</h3>
+          <p className={styles.statValue}>{totalOrgs}</p>
+        </Card>
+        <Card className={styles.statCard}>
+          <h3>تصاویر</h3>
+          <p className={styles.statValue}>{totalImages}</p>
+          <small>{enabledImages} فعال</small>
+        </Card>
+        <Card className={styles.statCard}>
+          <h3>نشست‌های فعال</h3>
+          <p className={styles.statValue}>-</p>
+          <small>نیاز به endpoint تجمیعی</small>
+        </Card>
       </div>
 
       <div className={styles.chartsGrid}>
-        <motion.div variants={item} className={styles.chartWrapper}>
-          <Chart title="کاربران بر اساس سازمان">
-            <BarChart data={orgData}>
+        <Card>
+          <h3>تعداد کاربران بر اساس سازمان</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={orgList.map(o => ({ name: o.name, maxUsers: o.settings?.maxUsers || 0 }))}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
+              <YAxis allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="users" fill="var(--accent)" />
+              <Bar dataKey="maxUsers" fill="var(--accent)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </Chart>
-        </motion.div>
-
-        <motion.div variants={item} className={styles.chartWrapper}>
-          <Chart title="وضعیت نشست‌ها">
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <h3>وضعیت نشست‌ها (کل پلتفرم)</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={sessionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                 {sessionData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
               <Legend />
             </PieChart>
-          </Chart>
-        </motion.div>
+          </ResponsiveContainer>
+        </Card>
       </div>
     </motion.div>
   );

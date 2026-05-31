@@ -9,6 +9,24 @@ import Button from '../../../components/common/Button';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
 import { toJalali } from '../../../utils/formatDate';
+import NoItem from '../../../components/common/NoItem';
+
+// Map English actions to Persian
+const actionMap = {
+  'user.created': 'ایجاد کاربر',
+  'user.updated': 'ویرایش کاربر',
+  'user.deleted': 'حذف کاربر',
+  'workspace.created': 'ایجاد فضای کاری',
+  'session.started': 'شروع نشست',
+  'session.stopped': 'توقف نشست',
+  'file.uploaded': 'آپلود فایل',
+  'policyTemplate.created': 'ایجاد قانون',
+  'organization.created': 'ایجاد سازمان',
+};
+
+function translateAction(action) {
+  return actionMap[action] || action;
+}
 
 export default function Logs() {
   const [filters, setFilters] = useState({ page: 1, action: '', resource: '' });
@@ -31,7 +49,7 @@ export default function Logs() {
           value={filters.resource}
           onChange={(e) => setFilters({ ...filters, resource: e.target.value, page: 1 })}
         />
-        <Button onClick={() => setFilters({ ...filters, page: 1 })} variant="secondary">فیلتر</Button>
+        <Button variant="secondary" onClick={() => setFilters({ ...filters, page: 1 })}>فیلتر</Button>
       </Card>
 
       {isLoading ? <Loader /> : (
@@ -42,18 +60,30 @@ export default function Logs() {
                 <th>عملیات</th>
                 <th>منبع</th>
                 <th>کاربر</th>
+                <th>سازمان</th>
                 <th>زمان</th>
+                <th>جزئیات</th>
               </tr>
             </thead>
             <tbody>
-              {data?.data?.data?.map((log) => (
-                <motion.tr key={log._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-                  <td>{log.action}</td>
-                  <td>{log.resource}</td>
-                  <td>{log.userId || '-'}</td>
-                  <td>{toJalali(log.timestamp)}</td>
-                </motion.tr>
-              ))}
+              {data?.data?.data?.length === 0 ?
+                <div className={styles.noItem}>
+                  <NoItem />
+                </div> :
+                data?.data?.data?.map((log) => (
+                  <motion.tr key={log._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+                    <td>{translateAction(log.action)}</td>
+                    <td>{log.resource}</td>
+                    <td>
+                      {log.userId ? `${log.userId.firstName} ${log.userId.lastName}` : '—'}
+                      <br />
+                      <small className={styles.userId}>{log.userId?._id || '—'}</small>
+                    </td>
+                    <td>{log.organizationId?.name || '—'}</td>
+                    <td>{toJalali(log.timestamp)}</td>
+                    <td className={styles.details}>{log.details ? JSON.stringify(log.details) : '—'}</td>
+                  </motion.tr>
+                ))}
             </tbody>
           </table>
         </div>

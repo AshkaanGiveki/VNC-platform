@@ -37,6 +37,26 @@ const createWithAdmin = async (req, res, next) => {
   }
 };
 
+const createWithManager = async (req, res, next) => {
+  try {
+    // Create organization
+    const org = await orgService.createOrganization(req.body);
+    // Create manager user
+    const userService = require('../services/user.service');
+    await userService.createUser({
+      actor: req.user, // superadmin
+      organizationId: org._id.toString(),
+      userData: {
+        ...req.body.manager,
+        role: 'manager',
+      },
+    });
+    return success(res, { organization: org }, 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getAll = async (req, res, next) => {
   try {
     const orgs = await orgService.getAllOrganizations();
@@ -73,4 +93,4 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { create, createWithAdmin, getAll, getById, update, remove };
+module.exports = { create, createWithAdmin, createWithManager, getAll, getById, update, remove };

@@ -8,11 +8,17 @@ const { ROLES } = require('../../utils/constants');
 
 router.use(authenticate);
 
+// Regular user notifications
 router.get('/', validate({ query: notificationValidator.queryParams }), notificationController.getUserNotifications);
+
+// Superadmin platform notifications
+router.get('/admin', authorize(ROLES.SUPERADMIN), validate({ query: notificationValidator.queryParams }), notificationController.getAdminNotifications);
+
+// Manager / Org‑admin org notifications
+router.get('/organization', authorize(ROLES.ORG_ADMIN, ROLES.MANAGER), validate({ query: notificationValidator.queryParams }), notificationController.getOrgNotifications);
+
 router.patch('/:id/read', validate({ params: notificationValidator.notificationIdParam }), notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllRead);
-
-// Only admins can create notifications manually
 router.post('/', authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN), validate({ body: notificationValidator.createBody }), notificationController.createNotification);
 
 module.exports = router;

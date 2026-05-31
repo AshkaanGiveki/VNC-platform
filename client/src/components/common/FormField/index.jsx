@@ -1,5 +1,6 @@
 import { cn } from '../../../utils/cn';
 import styles from './index.module.scss';
+import arrowIcon from '../../../assets/icons/arrow.png';
 
 export default function FormField({
   label,
@@ -20,25 +21,30 @@ export default function FormField({
       {label && <label className={styles.label}>{label}</label>}
 
       {as === 'select' ? (
-        <select {...inputProps}>
-          <option value="">-- انتخاب کنید --</option>
-          {options?.map((opt) => {
-            // If option is a string, use it as both value and label
-            if (typeof opt === 'string') {
+        <div className={styles.selectWrapper}>
+          <select {...inputProps}>
+            <option value="">-- انتخاب کنید --</option>
+            {options?.map((opt) => {
+              if (typeof opt === 'string') {
+                return (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                );
+              }
               return (
-                <option key={opt} value={opt}>
-                  {opt}
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               );
-            }
-            // If option is an object with label/value
-            return (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            );
-          })}
-        </select>
+            })}
+          </select>
+          <img
+            src={arrowIcon}
+            alt="arrow"
+            className={`${styles.arrowIcon} icon`}
+          />
+        </div>
       ) : (
         <input type={type} {...inputProps} />
       )}

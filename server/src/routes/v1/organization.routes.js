@@ -20,5 +20,11 @@ router.get('/', validate({ query: orgValidator.queryParams }), orgController.get
 router.get('/:id', validate({ params: orgValidator.orgIdParam }), orgController.getById);
 router.put('/:id', validate({ params: orgValidator.orgIdParam, body: orgValidator.updateBody }), orgController.update);
 router.delete('/:id', validate({ params: orgValidator.orgIdParam }), orgController.remove);
+router.post(
+  '/with-manager',
+  authenticate, authorize(ROLES.SUPERADMIN),
+  validate({ body: orgValidator.createBodyWithManager }),
+  orgController.createWithManager
+);
 
 module.exports = router;

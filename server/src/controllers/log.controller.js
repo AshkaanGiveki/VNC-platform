@@ -12,7 +12,6 @@ const getLogs = async (req, res, next) => {
     const pagination = parsePagination(req.query);
     const filter = {};
 
-    // Superadmin sees all; org admin sees own org; others forbidden via middleware
     if (req.user.role === ROLES.ORG_ADMIN) {
       filter.organizationId = req.user.organizationId;
     } else if (req.user.role === ROLES.SUPERADMIN && req.query.orgId) {
@@ -30,7 +29,10 @@ const getLogs = async (req, res, next) => {
 
     const [logs, total] = await Promise.all([
       applyPagination(
-        Log.find(filter).sort({ timestamp: -1 }),
+        Log.find(filter)
+          .populate('userId', 'firstName lastName email')
+          .populate('organizationId', 'name')
+          .sort({ timestamp: -1 }),
         pagination
       ).lean(),
       Log.countDocuments(filter),
