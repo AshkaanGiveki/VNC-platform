@@ -33,6 +33,7 @@ const policyTemplateSchema = new mongoose.Schema(
       downloadEnabled: { type: Boolean, default: false },
       uploadEnabled: { type: Boolean, default: true },
       maxSessionDuration: { type: Number, default: 0, min: 0 },
+      maxConcurrentSessions: { type: Number, default: 2, min: 1 },   // NEW
     },
     isDefault: {
       type: Boolean,

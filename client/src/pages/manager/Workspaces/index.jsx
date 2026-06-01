@@ -20,6 +20,7 @@ import Loader from '../../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
+import NoItem from '../../../components/common/NoItem';
 
 // Stagger animation variants
 const containerVariants = {
@@ -185,7 +186,11 @@ export default function ManagerWorkspaces() {
         animate="show"
         className={styles.list}
       >
-        {workspaces.map((ws) => (
+        {workspaces.length === 0 ?
+                  <div className={styles.noItem}>
+                    <NoItem />
+                  </div> :
+                  workspaces.map((ws) => (
           <motion.div key={ws._id} variants={itemVariants}>
             <Card className={styles.card}>
               <div className={styles.info}>

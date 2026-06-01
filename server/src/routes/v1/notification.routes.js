@@ -19,6 +19,10 @@ router.get('/organization', authorize(ROLES.ORG_ADMIN, ROLES.MANAGER), validate(
 
 router.patch('/:id/read', validate({ params: notificationValidator.notificationIdParam }), notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllRead);
-router.post('/', authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN), validate({ body: notificationValidator.createBody }), notificationController.createNotification);
-
+router.post(
+  '/',
+  authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER),
+  validate({ body: notificationValidator.createBody }),
+  notificationController.createNotification
+);
 module.exports = router;

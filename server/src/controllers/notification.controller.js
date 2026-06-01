@@ -32,6 +32,9 @@ const markAllRead = async (req, res, next) => {
 
 const createNotification = async (req, res, next) => {
   // Admin-only endpoint to manually send notifications
+  if (req.user.role === ROLES.ORG_ADMIN && (req.body.scope === 'admins')) {
+    return res.status(403).json({ success: false, message: 'Admins cannot send to admins scope' });
+  }
   try {
     await notificationService.createNotification(req.body);
     return success(res, { message: 'Notification created' }, 201);

@@ -43,4 +43,11 @@ export const sessionStatus = {
   paused: 'توقف موقت',
   failed: 'شکست خورده',
   starting: 'در حال آماده‌سازی'
-  };
+};
+
+export const roles = {
+  user: 'کاربر',
+  org_admin: 'ادمین سازمان',
+  manager: 'مدیر سازمان',
+  superadmin: 'سوپرادمین'
+};

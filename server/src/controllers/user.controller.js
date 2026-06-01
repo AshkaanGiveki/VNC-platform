@@ -7,6 +7,9 @@ const { success, paginated } = require('../utils/response');
 const UserWorkspace = require('../models/UserWorkspace');
 
 const createUser = async (req, res, next) => {
+  if (actor.role === ROLES.ORG_ADMIN && (userData.role && userData.role !== ROLES.USER)) {
+    throw new AuthorizationError('Admins can only create regular users');
+  }
   try {
     console.log(req.user);
     const user = await userService.createUser({
@@ -41,6 +44,28 @@ const getUser = async (req, res, next) => {
   }
 };
 
+// const updateUser = async (req, res, next) => {
+//   if (actor.role === ROLES.ORG_ADMIN && updates.role) {
+//     throw new AuthorizationError('Admins cannot change roles');
+//   }
+//   if (actor.role === ROLES.ORG_ADMIN) {
+//     const targetUser = await User.findById(userId);
+//     if (!targetUser) throw new NotFoundError('User not found');
+//     if (targetUser.role !== ROLES.USER) {
+//       throw new AuthorizationError('Admins can only modify regular users');
+//     }
+//   }
+//   try {
+//     const user = await userService.updateUser({
+//       actor: req.user,
+//       userId: req.params.userId,
+//       updates: req.body,
+//     });
+//     return success(res, user);
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 const updateUser = async (req, res, next) => {
   try {
     const user = await userService.updateUser({

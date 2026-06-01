@@ -138,40 +138,35 @@ async function getUserById(userId, organizationId) {
  * @returns {Promise<object>} Updated user.
  */
 async function updateUser({ actor, userId, updates }) {
-    // Only org_admin can change roles, etc.
-    if (actor.role !== ROLES.ORG_ADMIN && actor.role !== ROLES.SUPERADMIN) {
-        throw new AuthorizationError('Only admins can update user details');
+  // Admin cannot change roles
+  if (actor.role === ROLES.ORG_ADMIN && updates.role) {
+    throw new AuthorizationError('Admins cannot change roles');
+  }
+
+  // Admin can only modify regular users (not admins or managers)
+  if (actor.role === ROLES.ORG_ADMIN) {
+    const targetUser = await User.findById(userId);
+    if (!targetUser) throw new NotFoundError('User not found');
+    if (targetUser.role !== ROLES.USER) {
+      throw new AuthorizationError('Admins can only modify regular users');
     }
+  }
 
-    const user = await User.findById(userId);
-    if (!user) throw new NotFoundError('User not found');
+  // Proceed with update
+  const user = await User.findByIdAndUpdate(userId, updates, { new: true, runValidators: true }).select('-password -refreshTokens');
+  if (!user) throw new NotFoundError('User not found');
 
-    // Ensure actor belongs to same org or is superadmin
-    if (actor.role !== ROLES.SUPERADMIN && actor.organizationId.toString() !== user.organizationId.toString()) {
-        throw new AuthorizationError('Cannot modify users outside your organization');
-    }
+  await logAction({
+    action: 'user.updated',
+    resource: 'user',
+    resourceId: user._id,
+    userId: actor.userId,
+    organizationId: user.organizationId,
+    details: updates,
+  });
 
-    // Prevent role escalation to superadmin
-    if (updates.role === ROLES.SUPERADMIN) {
-        throw new AuthorizationError('Cannot assign superadmin role');
-    }
-
-    Object.assign(user, updates);
-    await user.save({ validateBeforeSave: true });
-
-    await logAction({
-        action: 'user.updated',
-        resource: 'user',
-        resourceId: user._id,
-        userId: actor.userId,
-        organizationId: user.organizationId,
-        details: updates,
-    });
-
-    logger.info(`User updated: ${user.email}`);
-    const userObj = user.toObject();
-    delete userObj.password;
-    return userObj;
+  logger.info(`User updated: ${user.email}`);
+  return user;
 }
 
 /**
@@ -182,8 +177,8 @@ async function updateUser({ actor, userId, updates }) {
  * @returns {Promise<void>}
  */
 async function deleteUser({ actor, userId }) {
-    if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN].includes(actor.role)) {
-        throw new AuthorizationError('Only admins can delete users');
+    if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
+        throw new AuthorizationError('Only admins and managers can delete users');
     }
 
     const user = await User.findById(userId);

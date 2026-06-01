@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
 import { changePassword } from '../../../services/authService';
+import { roles } from '../../../locales/fa';
 
 export default function Profile() {
   const { user } = useSelector((state) => state.auth);
@@ -75,19 +76,18 @@ export default function Profile() {
           </div>
         ) : (
           <div className={styles.infoDisplay}>
-            <p><strong>نام:</strong> {user?.firstName}</p>
-            <p><strong>نام خانوادگی:</strong> {user?.lastName}</p>
-            <p><strong>ایمیل:</strong> {user?.email}</p>
-            <p><strong>نقش:</strong> {user?.role}</p>
+            <p><strong></strong>{user?.firstName} {user?.lastName}</p>
+            <p><strong></strong> {user?.email}</p>
+            <p><strong></strong> {roles[user?.role]}</p>
             {canEditInfo && (
               <Button variant="secondary" onClick={() => setEditingInfo(true)}>ویرایش اطلاعات</Button>
             )}
           </div>
         )}
-      </Card>
+      {/* </Card> */}
 
-      <Card className={styles.card}>
-        <h2>تغییر رمز عبور</h2>
+      {/* <Card className={styles.card}> */}
+        <h2 className={styles.bottomSection}>تغییر رمز عبور</h2>
         <div className={styles.form}>
           <FormField label="رمز فعلی" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})} />
           <FormField label="رمز جدید" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} />

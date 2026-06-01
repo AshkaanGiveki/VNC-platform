@@ -13,6 +13,8 @@ export const ROUTES = {
   MANAGER_WORKSPACES: '/manager/workspaces',
   MANAGER_POLICIES: '/manager/policies',
   MANAGER_NOTIFICATIONS: '/manager/notifications',
+  MANAGER_SEND_NOTIFICATIONS: '/manager/sendnotifications',
+  MANAGER_RECORDINGS: '/manager/recordings',
   USER_DASHBOARD: '/user',
   USER_WORKSPACES: '/user/workspaces',
   USER_SESSIONS: '/user/sessions',

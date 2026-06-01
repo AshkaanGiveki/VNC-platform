@@ -42,7 +42,17 @@ async function createNotification({
     const User = require('../models/User');
     const users = await User.find({ isActive: true }).select('_id');
     finalRecipients = users.map(u => u._id);
-  } else if (scope === 'organization') {
+  } else if (scope === 'admins') {
+    if (!organizationId) throw new AppError('Organization ID is required for admins scope', 400);
+    const User = require('../models/User');
+    const users = await User.find({
+      organizationId,
+      role: { $in: ['org_admin'] },
+      isActive: true,
+    }).select('_id');
+    finalRecipients = users.map(u => u._id);
+  }
+  else if (scope === 'organization') {
     if (!organizationId) throw new AppError('Organization ID is required for organization scope', 400);
     const User = require('../models/User');
     const users = await User.find({ organizationId, isActive: true }).select('_id');

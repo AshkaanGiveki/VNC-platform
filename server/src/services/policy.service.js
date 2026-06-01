@@ -18,8 +18,8 @@ const logger = require('../utils/logger');
  * @returns {Promise<object>}
  */
 async function createTemplate({ actor, organizationId, data }) {
-  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN].includes(actor.role)) {
-    throw new AuthorizationError('Only admins can create policy templates');
+  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
+    throw new AuthorizationError('Only admins & managers can create policy templates');
   }
 
   const template = await PolicyTemplate.create({
@@ -64,8 +64,8 @@ async function getTemplate(templateId, organizationId) {
  * Update a template.
  */
 async function updateTemplate({ actor, templateId, organizationId, updates }) {
-  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN].includes(actor.role)) {
-    throw new AuthorizationError('Only admins can update policy templates');
+  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
+    throw new AuthorizationError('Only admins & managers can update policy templates');
   }
 
   const template = await PolicyTemplate.findOneAndUpdate(
@@ -91,8 +91,8 @@ async function updateTemplate({ actor, templateId, organizationId, updates }) {
  * Delete a template (cannot delete if set as default).
  */
 async function deleteTemplate({ actor, templateId, organizationId }) {
-  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN].includes(actor.role)) {
-    throw new AuthorizationError('Only admins can delete policy templates');
+  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
+    throw new AuthorizationError('Only admins & managers can delete policy templates');
   }
 
   const template = await PolicyTemplate.findOne({ _id: templateId, organizationId });
@@ -117,8 +117,8 @@ async function deleteTemplate({ actor, templateId, organizationId }) {
  * The pre-save hook in the model handles unsetting others.
  */
 async function setDefaultTemplate({ actor, templateId, organizationId }) {
-  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN].includes(actor.role)) {
-    throw new AuthorizationError('Only admins can change default policy');
+  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
+    throw new AuthorizationError('Only admins & managers can change default policy');
   }
 
   const template = await PolicyTemplate.findOne({ _id: templateId, organizationId });

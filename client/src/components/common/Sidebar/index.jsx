@@ -35,21 +35,26 @@ const menuItems = {
     { path: ROUTES.MANAGER_USERS, icon: users, label: 'کاربران' },
     { path: ROUTES.MANAGER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
     { path: ROUTES.MANAGER_POLICIES, icon: policies, label: 'قوانین' },
+    { path: ROUTES.MANAGER_RECORDINGS, icon: recordings, label: 'ضبط‌ها' },
     { path: ROUTES.MANAGER_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
+    { path: ROUTES.MANAGER_SEND_NOTIFICATIONS, icon: sendNotif, label: 'ارسال اعلان' },
+  
   ],
   user: [
     { path: ROUTES.USER_DASHBOARD, icon: dashboard, label: 'داشبورد' },
     { path: ROUTES.USER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
     { path: ROUTES.USER_SESSIONS, icon: sessions, label: 'نشست‌ها' },
-    { path: ROUTES.USER_RECORDINGS, icon: recordings, label: 'ضبط‌ها' },
     { path: ROUTES.USER_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
   ],
    manager: [
     { path: ROUTES.MANAGER_DASHBOARD, icon: dashboard, label: 'داشبورد' },
-    // { path: ROUTES.MANAGER_USERS, icon: users, label: 'کاربران' },
-    // { path: ROUTES.MANAGER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
-    // { path: ROUTES.MANAGER_POLICIES, icon: policies, label: 'قوانین' },
+    { path: ROUTES.MANAGER_USERS, icon: users, label: 'کاربران' },
+    { path: ROUTES.MANAGER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
+    { path: ROUTES.MANAGER_POLICIES, icon: policies, label: 'قوانین' },
+    { path: ROUTES.MANAGER_RECORDINGS, icon: recordings, label: 'ضبط‌ها' },
     { path: ROUTES.MANAGER_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
+    { path: ROUTES.MANAGER_SEND_NOTIFICATIONS, icon: sendNotif, label: 'ارسال اعلان' },
+  
   ],
 };
 

@@ -45,6 +45,7 @@ export default function Login() {
             toast.success('ورود موفقیت‌آمیز');
             if (payload.user.role === 'superadmin') navigate('/admin');
             else if (payload.user.role === 'org_admin') navigate('/manager');
+            else if (payload.user.role === 'manager') navigate('/manager');
             else navigate('/user');
         } catch (err) {
             toast.error(err.response?.data?.message || 'خطا در ورود');

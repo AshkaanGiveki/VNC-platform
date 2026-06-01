@@ -8,6 +8,8 @@ import { lazy, Suspense } from 'react';
 import Loader from './components/common/Loader';
 import apiClient from './services/apiClient';
 import SendNotification from './pages/admin/SendNotification';
+import ManagerSendNotification from './pages/manager/SendNotification';
+import ManagerRecordings from './pages/manager/Recordings';
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
@@ -31,7 +33,6 @@ const NotFound = lazy(() => import('./pages/shared/NotFound'));
 const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
 const ManagerNotifications = lazy(() => import('./pages/manager/Notifications'));
 
-// Ensure user object exists, fetch if necessary
 async function ensureUser() {
   const { auth } = store.getState();
   if (auth.isAuthenticated && !auth.user) {
@@ -47,11 +48,13 @@ async function ensureUser() {
   return auth;
 }
 
-// Role‑protected route loader
-async function requireAuth(role) {
+async function requireAuth(roles) {
   const auth = await ensureUser();
   if (!auth.isAuthenticated) return redirect(ROUTES.LOGIN);
-  if (role && auth.user?.role !== role) return redirect(ROUTES.NOT_FOUND);
+  if (roles) {
+    const roleList = Array.isArray(roles) ? roles : [roles];
+    if (!roleList.includes(auth.user?.role)) return redirect(ROUTES.NOT_FOUND);
+  }
   return null;
 }
 
@@ -78,18 +81,19 @@ export const router = createBrowserRouter([
       { path: '/admin/logs', element: <SuspenseWrapper><Logs /></SuspenseWrapper> },
       { path: '/admin/sendnotifications', element: <SuspenseWrapper><SendNotification /></SuspenseWrapper> },
       { path: '/admin/notifications', element: <SuspenseWrapper><AdminNotifications /></SuspenseWrapper> },
-      ],
+    ],
   },
   {
     element: <DashboardLayout />,
-    loader: () => requireAuth('org_admin'),
+    loader: () => requireAuth(['org_admin', 'manager']),   // ← FIXED
     children: [
       { path: '/manager', element: <SuspenseWrapper><ManagerDashboard /></SuspenseWrapper> },
       { path: '/manager/users', element: <SuspenseWrapper><Users /></SuspenseWrapper> },
       { path: '/manager/workspaces', element: <SuspenseWrapper><Workspaces /></SuspenseWrapper> },
       { path: '/manager/policies', element: <SuspenseWrapper><Policies /></SuspenseWrapper> },
       { path: '/manager/notifications', element: <SuspenseWrapper><ManagerNotifications /></SuspenseWrapper> },
-    
+      { path: '/manager/sendnotifications', element: <SuspenseWrapper><ManagerSendNotification /></SuspenseWrapper> },
+      { path: '/manager/recordings', element: <SuspenseWrapper><ManagerRecordings /></SuspenseWrapper> },
     ],
   },
   {
