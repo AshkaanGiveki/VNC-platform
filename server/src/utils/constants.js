@@ -32,6 +32,7 @@ const NOTIFICATION_SCOPE = Object.freeze({
   ORGANIZATION: 'organization',
   GROUP: 'group',
   USER: 'user',
+  ADMINS: 'admins'
 });
 
 const POLICY_OPTIONS = Object.freeze({

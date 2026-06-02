@@ -27,6 +27,7 @@ const defaultOptions = {
   downloadEnabled: false,
   uploadEnabled: true,
   maxSessionDuration: 0,
+  maxConcurrentSessions: 2,
 };
 
 export default function ManagerPolicies() {
@@ -65,19 +66,22 @@ export default function ManagerPolicies() {
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => deleteTemplate(orgId, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['policies']);
-      toast.success('حذف شد');
-    },
-  });
+ const deleteMutation = useMutation({
+  mutationFn: (id) => deleteTemplate(orgId, id),
+  onSuccess: () => {
+    queryClient.invalidateQueries(['policies']);
+    toast.success('قانون حذف شد');
+  },
+  onError: (err) => {
+    toast.error(err.response?.data?.message || 'خطا در حذف قانون');
+  },
+});
 
   const setDefaultMutation = useMutation({
     mutationFn: (id) => setDefaultTemplate(orgId, id),
     onSuccess: () => {
       queryClient.invalidateQueries(['policies']);
-      toast.success('قانون پیش‌فرض تغییر کرد');
+      toast.success('قانون فعال تغییر کرد');
     },
   });
 
@@ -138,21 +142,20 @@ export default function ManagerPolicies() {
               <Card className={styles.card}>
                 <div>
                   <h3>
-                    {p.name}
-                    {p.isDefault && <span className={styles.default}> (پیش‌فرض)</span>}
+                    {`${p.name} `}
+                    {p.isDefault && <span className={styles.default}> فعال</span>}
                   </h3>
-                  <p>حداکثر زمان: {p.options.maxSessionDuration} دقیقه</p>
                 </div>
                 <div className={styles.actions}>
-                  <Button size="sm" variant="secondary" onClick={() => handleEdit(p)}>
-                    ویرایش
-                  </Button>
-                  <Button
+                    {!p.isDefault && <Button
                     size="sm"
                     variant="secondary"
                     onClick={() => setDefaultMutation.mutate(p._id)}
                   >
-                    پیش‌فرض
+                    فعال‌سازی
+                  </Button>}
+                  <Button size="sm" variant="secondary" onClick={() => handleEdit(p)}>
+                    ویرایش
                   </Button>
                   <Button
                     size="sm"
@@ -243,6 +246,18 @@ export default function ManagerPolicies() {
                 options: { ...form.options, maxSessionDuration: Number(e.target.value) },
               })
             }
+          />
+          <FormField
+            label="حداکثر نشست همزمان"
+            type="number"
+            value={form.options.maxConcurrentSessions}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                options: { ...form.options, maxConcurrentSessions: Number(e.target.value) },
+              })
+            }
+            min={1}
           />
           <div className={styles.modalActions}>
             <Button onClick={handleSave} loading={createMutation.isLoading || updateMutation.isLoading}>

@@ -99,11 +99,21 @@ const createBodyWithManager = Joi.object({
   }).required(),
 });
 
+
+const updateManagerBody = Joi.object({
+  email: Joi.string().email().optional(),
+  password: Joi.string().min(8).optional(),
+  firstName: Joi.string().trim().max(50).optional(),
+  lastName: Joi.string().trim().max(50).optional(),
+  isActive: Joi.boolean().optional(),
+}).min(1);
+
 module.exports = {
   createBody,
   createBodyWithAdmin,
   updateBody,
   orgIdParam,
   queryParams,
-  createBodyWithManager
+  createBodyWithManager,
+  updateManagerBody
 };

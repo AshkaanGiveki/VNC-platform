@@ -10,9 +10,12 @@ const fileRoutes = require('./file.routes');
 const notificationRoutes = require('./notification.routes');
 const logRoutes = require('./log.routes');
 const recordingRoutes = require('./recording.routes');
+const adminRoutes = require('./admin.routes');
 
 // Auth
 router.use('/auth', authRoutes);
+
+router.use('/users', adminRoutes);   
 
 // Org‑scoped resources – more specific routes first to avoid superadmin blanket catch
 router.use('/organizations/:orgId/users', userRoutes);

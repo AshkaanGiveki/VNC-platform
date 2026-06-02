@@ -124,8 +124,17 @@ async function deleteWorkspace({ actor, workspaceId, organizationId }) {
  * Assign a workspace to a user.
  */
 async function assignWorkspaceToUser({ actor, workspaceId, userId, organizationId }) {
+  if (!userId || userId.length !== 24) {
+    throw new ValidationError('Invalid user ID');
+  }
   if (![ROLES.ORG_ADMIN, ROLES.MANAGER].includes(actor.role)) {
     throw new AuthorizationError('Insufficient permissions');
+  }
+
+  const targetUser = await User.findById(userId);
+  if (!targetUser) throw new NotFoundError('User not found');
+  if (targetUser.role !== ROLES.USER) {
+    throw new AuthorizationError('Only regular users can be assigned to workspaces');
   }
 
   // Validate workspace and user belong to same org

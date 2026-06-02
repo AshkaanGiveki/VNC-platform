@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrganizations, deleteOrganization } from '../../../services/orgService';
+import { getOrganizations, updateOrganization, deleteOrganization } from '../../../services/orgService';
 import apiClient from '../../../services/apiClient';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
@@ -11,7 +11,7 @@ import Loader from '../../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
-import NoItem from '../../../components/common/NoItem';
+import { cn } from '../../../utils/cn';
 
 const containerVariants = {
   hidden: {},
@@ -26,15 +26,17 @@ export default function Organizations() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null); // orgId to delete
+  const [editingOrg, setEditingOrg] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [form, setForm] = useState({
     name: '',
     domain: '',
+    isActive: true,
     manager: {
       email: '',
-      password: '',
       firstName: '',
       lastName: '',
+      isActive: true,
     },
   });
 
@@ -43,14 +45,42 @@ export default function Organizations() {
     queryFn: () => getOrganizations({ page, limit: 10 }),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data) => apiClient.post('/organizations/with-manager', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['organizations']);
-      toast.success('سازمان و مدیر ایجاد شدند');
-      closeModal();
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
+  // Toggle organization active status with optimistic update + refetch
+  const toggleOrgStatus = async (org) => {
+    const newStatus = !org.isActive;
+    // Optimistically update cache
+    queryClient.setQueryData(['organizations', page], (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          data: old.data.data.map((o) =>
+            o._id === org._id ? { ...o, isActive: newStatus } : o
+          ),
+        },
+      };
+    });
+    try {
+      await updateOrganization(org._id, { isActive: newStatus });
+      toast.success(newStatus ? 'سازمان فعال شد' : 'سازمان غیرفعال شد');
+      // Refetch to confirm
+      queryClient.invalidateQueries(['organizations', page]);
+    } catch (err) {
+      // Revert on failure
+      queryClient.invalidateQueries(['organizations', page]);
+      toast.error('خطا در تغییر وضعیت');
+    }
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateOrganization(id, data),
+    onSuccess: () => queryClient.invalidateQueries(['organizations']),
+  });
+
+  const updateManagerMutation = useMutation({
+    mutationFn: ({ orgId, data }) => apiClient.put(`/organizations/${orgId}/manager`, data),
+    onSuccess: () => queryClient.invalidateQueries(['organizations']),
   });
 
   const deleteMutation = useMutation({
@@ -65,19 +95,81 @@ export default function Organizations() {
 
   const closeModal = () => {
     setModalOpen(false);
+    setEditingOrg(null);
     setForm({
       name: '',
       domain: '',
-      manager: { email: '', password: '', firstName: '', lastName: '' },
+      isActive: true,
+      manager: { email: '', firstName: '', lastName: '', isActive: true },
     });
   };
 
-  const handleSave = () => {
-    if (!form.name.trim() || !form.manager.email || !form.manager.password || !form.manager.firstName || !form.manager.lastName) {
-      toast.error('اطلاعات کامل نیست');
+  const handleEdit = async (org) => {
+    setEditingOrg(org);
+    // Fetch manager details
+    let managerData = { email: '', firstName: '', lastName: '', isActive: true };
+    try {
+      const res = await apiClient.get(`/organizations/${org._id}/manager`);
+      const mgr = res.data.data.manager;
+      if (mgr) {
+        managerData = {
+          email: mgr.email || '',
+          firstName: mgr.firstName || '',
+          lastName: mgr.lastName || '',
+          isActive: mgr.isActive,
+        };
+      }
+    } catch (err) {
+      // Manager may not exist; leave defaults
+    }
+    setForm({
+      name: org.name,
+      domain: org.domain || '',
+      isActive: org.isActive,
+      manager: managerData,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error('نام سازمان الزامی است');
       return;
     }
-    createMutation.mutate(form);
+    try {
+      await updateMutation.mutateAsync({
+        id: editingOrg._id,
+        data: { name: form.name, domain: form.domain, isActive: form.isActive },
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'خطا در به‌روزرسانی سازمان');
+      return;
+    }
+
+    const { manager } = form;
+    const hasChanges =
+      manager.email !== (editingOrg?.manager?.email || '') ||
+      manager.firstName !== (editingOrg?.manager?.firstName || '') ||
+      manager.lastName !== (editingOrg?.manager?.lastName || '') ||
+      manager.isActive !== (editingOrg?.manager?.isActive ?? true);
+
+    if (hasChanges) {
+      const managerData = {};
+      if (manager.email) managerData.email = manager.email;
+      if (manager.firstName) managerData.firstName = manager.firstName;
+      if (manager.lastName) managerData.lastName = manager.lastName;
+      if (typeof manager.isActive === 'boolean') managerData.isActive = manager.isActive;
+
+      try {
+        await updateManagerMutation.mutateAsync({ orgId: editingOrg._id, data: managerData });
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'خطا در به‌روزرسانی مدیر');
+        return;
+      }
+    }
+
+    toast.success('تغییرات ذخیره شد');
+    closeModal();
   };
 
   if (isLoading) return <Loader />;
@@ -86,28 +178,32 @@ export default function Organizations() {
     <div>
       <div className={styles.header}>
         <h1>مدیریت سازمان‌ها</h1>
-        <Button onClick={() => setModalOpen(true)}>افزودن سازمان</Button>
       </div>
 
       <motion.div variants={containerVariants} initial="hidden" animate="show" className={styles.list}>
-        {data?.data?.data?.length === 0 ?
-                  <div className={styles.noItem}>
-                    <NoItem />
-                  </div> :
-                  data?.data?.data?.map((org) => (
+        {data?.data?.data?.map((org) => (
           <motion.div key={org._id} variants={itemVariants}>
             <Card className={styles.orgCard}>
               <div>
-                <h3>{org.name}</h3>
+                <h3>
+                  {org.name}{' '}
+                  <span className={cn(org.isActive ? styles.active : styles.inactive, styles.status)}>
+                    {org.isActive ? 'فعال' : 'غیرفعال'}
+                  </span>
+                </h3>
                 <p className={styles.domain}>{org.domain || 'بدون دامنه'}</p>
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setConfirmDelete(org._id)}
-              >
-                حذف
-              </Button>
+              <div className={styles.actions}>
+                <Button size="sm" variant="secondary" onClick={() => handleEdit(org)}>
+                  ویرایش
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => toggleOrgStatus(org)}>
+                  {org.isActive ? 'غیرفعال‌سازی' : 'فعال‌سازی'}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(org._id)}>
+                  حذف
+                </Button>
+              </div>
             </Card>
           </motion.div>
         ))}
@@ -117,30 +213,92 @@ export default function Organizations() {
         <Pagination page={page} totalPages={data.data.meta.totalPages} onPageChange={setPage} />
       )}
 
-      {/* Create Modal */}
-      <Modal isOpen={modalOpen} onClose={closeModal} title="سازمان جدید">
+      {/* Edit Organization Modal */}
+      <Modal isOpen={modalOpen} onClose={closeModal} title="ویرایش سازمان">
         <div className={styles.form}>
           <h3>اطلاعات سازمان</h3>
-          <FormField label="نام سازمان" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <FormField label="دامنه" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
+          <FormField
+            label="نام"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
+          <FormField
+            label="دامنه"
+            value={form.domain}
+            onChange={(e) => setForm({ ...form, domain: e.target.value })}
+          />
+          <FormField
+            label="وضعیت"
+            as="select"
+            value={form.isActive ? 'active' : 'inactive'}
+            onChange={(e) => setForm({ ...form, isActive: e.target.value === 'active' })}
+            options={[
+              { label: 'فعال', value: 'active' },
+              { label: 'غیرفعال', value: 'inactive' },
+            ]}
+          />
           <h3>اطلاعات مدیر</h3>
-          <FormField label="نام" value={form.manager.firstName} onChange={(e) => setForm({ ...form, manager: { ...form.manager, firstName: e.target.value } })} required />
-          <FormField label="نام خانوادگی" value={form.manager.lastName} onChange={(e) => setForm({ ...form, manager: { ...form.manager, lastName: e.target.value } })} required />
-          <FormField label="ایمیل" value={form.manager.email} onChange={(e) => setForm({ ...form, manager: { ...form.manager, email: e.target.value } })} required />
-          <FormField label="رمز عبور" type="password" value={form.manager.password} onChange={(e) => setForm({ ...form, manager: { ...form.manager, password: e.target.value } })} required />
+          <FormField
+            label="نام"
+            value={form.manager.firstName}
+            onChange={(e) =>
+              setForm({ ...form, manager: { ...form.manager, firstName: e.target.value } })
+            }
+          />
+          <FormField
+            label="نام خانوادگی"
+            value={form.manager.lastName}
+            onChange={(e) =>
+              setForm({ ...form, manager: { ...form.manager, lastName: e.target.value } })
+            }
+          />
+          <FormField
+            label="ایمیل"
+            value={form.manager.email}
+            onChange={(e) =>
+              setForm({ ...form, manager: { ...form.manager, email: e.target.value } })
+            }
+          />
+          <FormField
+            label="وضعیت مدیر"
+            as="select"
+            value={form.manager.isActive ? 'active' : 'blocked'}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                manager: { ...form.manager, isActive: e.target.value === 'active' },
+              })
+            }
+            options={[
+              { label: 'فعال', value: 'active' },
+              { label: 'مسدود', value: 'blocked' },
+            ]}
+          />
           <div className={styles.modalActions}>
-            <Button onClick={handleSave} loading={createMutation.isLoading}>ایجاد</Button>
-            <Button variant="secondary" onClick={closeModal}>انصراف</Button>
+            <Button
+              onClick={handleSave}
+              loading={updateMutation.isLoading || updateManagerMutation.isLoading}
+            >
+              ذخیره
+            </Button>
+            <Button variant="secondary" onClick={closeModal}>
+              انصراف
+            </Button>
           </div>
         </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="تأیید حذف سازمان">
-        <p>آیا از حذف کامل سازمان و تمام کاربران آن اطمینان دارید؟ این عمل قابل بازگشت نیست.</p>
+      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="تأیید حذف">
+        <p>آیا از حذف کامل سازمان و تمام کاربران آن اطمینان دارید؟</p>
         <div className={styles.modalActions}>
-          <Button onClick={() => deleteMutation.mutate(confirmDelete)} loading={deleteMutation.isLoading} variant="danger">حذف</Button>
-          <Button variant="secondary" onClick={() => setConfirmDelete(null)}>انصراف</Button>
+          <Button onClick={() => deleteMutation.mutate(confirmDelete)} loading={deleteMutation.isLoading}>
+            حذف
+          </Button>
+          <Button variant="secondary" onClick={() => setConfirmDelete(null)}>
+            انصراف
+          </Button>
         </div>
       </Modal>
     </div>

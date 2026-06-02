@@ -11,6 +11,7 @@ export const ROUTES = {
   MANAGER_DASHBOARD: '/manager',
   MANAGER_USERS: '/manager/users',
   MANAGER_WORKSPACES: '/manager/workspaces',
+  MANAGER_SESSIONS: '/manager/sessions',
   MANAGER_POLICIES: '/manager/policies',
   MANAGER_NOTIFICATIONS: '/manager/notifications',
   MANAGER_SEND_NOTIFICATIONS: '/manager/sendnotifications',

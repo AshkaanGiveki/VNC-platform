@@ -1,0 +1,39 @@
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sessionCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.info {
+    flex: 1;
+}
+
+.user {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.status {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+
+.noItem {
+    display: flex;
+    justify-content: center;
+}

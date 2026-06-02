@@ -14,6 +14,7 @@ export default function Loader({ fullScreen = false, theme = "primary" }) {
             <div></div>
             <div></div>
           </div> :
+          theme === "bars" ? <div className={styles.bars}></div> :
           <span class={styles.loader}>Loading...</span>
       }
     </div>

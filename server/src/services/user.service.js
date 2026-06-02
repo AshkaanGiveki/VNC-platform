@@ -1,19 +1,23 @@
-/**
- * User service – handles creation, retrieval, update, and deletion of users.
- * Only org admins and managers can manage users within their organization.
- * @module services/user.service
- */
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const { ROLES } = require('../utils/constants');
-const {
-    NotFoundError,
-    ConflictError,
-    AuthorizationError,
-    ValidationError,
-} = require('../utils/errors');
+const { NotFoundError, ConflictError, AuthorizationError } = require('../utils/errors');
 const { logAction } = require('./log.service');
 const logger = require('../utils/logger');
+
+const hierarchy = {
+    superadmin: 4,
+    manager: 3,
+    org_admin: 2,
+    user: 1,
+};
+
+function canModifyUser(actor, targetUser) {
+    const actorLevel = hierarchy[actor.role] || 0;
+    const targetLevel = hierarchy[targetUser.role] || 0;
+    return actorLevel > targetLevel;
+}
+
 
 /**
  * Create a new user under an organization.
@@ -31,6 +35,11 @@ async function createUser({ actor, organizationId, userData }) {
             throw new AuthorizationError('You can only create users in your own organization');
         }
     }
+
+    if (actor.role === ROLES.ORG_ADMIN && (userData.role && userData.role !== ROLES.USER)) {
+        throw new AuthorizationError('Admins can only create regular users');
+    }
+
     if (![ROLES.SUPERADMIN, ROLES.ORG_ADMIN, ROLES.MANAGER].includes(actor.role)) {
         throw new AuthorizationError('Insufficient permissions to create users');
     }
@@ -53,7 +62,7 @@ async function createUser({ actor, organizationId, userData }) {
     // Check if email already exists in that organization
     const existingUser = await User.findOne({ email: userData.email.toLowerCase(), organizationId });
     if (existingUser) {
-        throw new ConflictError('A user with this email already exists in the organization');
+        throw new ConflictError('کاربری با همین ایمیل در سازمان وجود دارد');
     }
 
     const newUser = await User.create({
@@ -98,12 +107,28 @@ async function listUsers({ organizationId, queryParams }) {
         filter.role = queryParams.role;
     }
     if (queryParams.search) {
-        const regex = new RegExp(queryParams.search, 'i');
-        filter.$or = [
-            { firstName: regex },
-            { lastName: regex },
-            { email: regex },
-        ];
+        const searchStr = queryParams.search.trim();
+
+        if (searchStr.includes(' ')) {
+            // Phrase search against concatenated full name
+            // Escape regex-special characters
+            const escaped = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.$expr = {
+                $regexMatch: {
+                    input: { $concat: ['$firstName', ' ', '$lastName'] },
+                    regex: escaped,
+                    options: 'i',
+                },
+            };
+        } else {
+            // Single word – search firstName, lastName, or email
+            const regex = { $regex: searchStr, $options: 'i' };
+            filter.$or = [
+                { firstName: regex },
+                { lastName: regex },
+                { email: regex },
+            ];
+        }
     }
 
     const [users, total] = await Promise.all([
@@ -137,70 +162,60 @@ async function getUserById(userId, organizationId) {
  * @param {object} params.updates - fields to update.
  * @returns {Promise<object>} Updated user.
  */
-async function updateUser({ actor, userId, updates }) {
-  // Admin cannot change roles
-  if (actor.role === ROLES.ORG_ADMIN && updates.role) {
-    throw new AuthorizationError('Admins cannot change roles');
-  }
 
-  // Admin can only modify regular users (not admins or managers)
-  if (actor.role === ROLES.ORG_ADMIN) {
+async function updateUser({ actor, userId, updates }) {
     const targetUser = await User.findById(userId);
     if (!targetUser) throw new NotFoundError('User not found');
-    if (targetUser.role !== ROLES.USER) {
-      throw new AuthorizationError('Admins can only modify regular users');
-    }
-  }
 
-  // Proceed with update
-  const user = await User.findByIdAndUpdate(userId, updates, { new: true, runValidators: true }).select('-password -refreshTokens');
-  if (!user) throw new NotFoundError('User not found');
-
-  await logAction({
-    action: 'user.updated',
-    resource: 'user',
-    resourceId: user._id,
-    userId: actor.userId,
-    organizationId: user.organizationId,
-    details: updates,
-  });
-
-  logger.info(`User updated: ${user.email}`);
-  return user;
-}
-
-/**
- * Soft-delete a user (deactivate).
- * @param {object} params
- * @param {object} params.actor
- * @param {string} params.userId
- * @returns {Promise<void>}
- */
-async function deleteUser({ actor, userId }) {
-    if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
-        throw new AuthorizationError('Only admins and managers can delete users');
+    if (!canModifyUser(actor, targetUser)) {
+        throw new AuthorizationError('You cannot modify a user with equal or higher role');
     }
 
-    const user = await User.findById(userId);
+    // Admin cannot change roles
+    if (actor.role === ROLES.ORG_ADMIN && updates.role) {
+        throw new AuthorizationError('Admins cannot change roles');
+    }
+
+    // Admin can only modify regular users
+    if (actor.role === ROLES.ORG_ADMIN && targetUser.role !== ROLES.USER) {
+        throw new AuthorizationError('Admins can only modify regular users');
+    }
+
+    const user = await User.findByIdAndUpdate(userId, updates, { new: true, runValidators: true }).select('-password -refreshTokens');
     if (!user) throw new NotFoundError('User not found');
 
-    if (actor.role !== ROLES.SUPERADMIN && actor.organizationId.toString() !== user.organizationId.toString()) {
-        throw new AuthorizationError('Cannot delete users outside your organization');
-    }
-
-    user.isActive = false;
-    await user.save({ validateBeforeSave: false });
-
     await logAction({
-        action: 'user.deleted',
+        action: 'user.updated',
         resource: 'user',
         resourceId: user._id,
         userId: actor.userId,
         organizationId: user.organizationId,
-        details: { email: user.email },
+        details: updates,
     });
 
-    logger.warn(`User deactivated: ${user.email}`);
+    logger.info(`User updated: ${user.email}`);
+    return user;
+}
+
+async function deleteUser({ actor, userId }) {
+    const targetUser = await User.findById(userId);
+    if (!targetUser) throw new NotFoundError('User not found');
+
+    if (!canModifyUser(actor, targetUser)) {
+        throw new AuthorizationError('You cannot delete this user');
+    }
+
+    await User.findByIdAndDelete(userId);
+
+    await logAction({
+        action: 'user.deleted',
+        resource: 'user',
+        resourceId: userId,
+        userId: actor.userId,
+        organizationId: targetUser.organizationId,
+    });
+
+    logger.warn(`User deleted: ${targetUser.email}`);
 }
 
 module.exports = { createUser, listUsers, getUserById, updateUser, deleteUser };

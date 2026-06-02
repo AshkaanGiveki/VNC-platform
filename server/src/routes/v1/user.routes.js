@@ -25,6 +25,8 @@ router.get(
   userController.listUsers
 );
 
+router.get('/all', authenticate, authorize(ROLES.SUPERADMIN), validate({ query: userValidator.queryParams }), userController.getAllUsers);
+
 router.get(
   '/:userId',
   validate({ params: userValidator.userIdParam }),

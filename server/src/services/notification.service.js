@@ -36,6 +36,7 @@ async function createNotification({
     throw new AppError('At least one recipient is required for user scope', 400);
   }
 
+  
   // If scope is platform or organization, we need to fetch recipient IDs.
   let finalRecipients = recipientIds || [];
   if (scope === 'platform') {

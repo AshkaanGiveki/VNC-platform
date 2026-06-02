@@ -106,7 +106,7 @@ export default function ManagerUsers() {
   const toggleBlock = (u) => {
     // Admin cannot block admins
     if (!canChangeRoles && u.role !== 'user') {
-      toast.error('شما نمی‌توانید این کاربر را مسدود کنید');
+      toast.error('شما نمی‌توانید وضعیت مسدودیت این کاربر را تغییر دهید');
       return;
     }
     updateUser(orgId, u._id, { isActive: !u.isActive })

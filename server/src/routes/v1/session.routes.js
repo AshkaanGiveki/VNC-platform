@@ -21,7 +21,7 @@ const resolveOrg = require('../../middleware/organization.middleware');
 const authorize = require('../../middleware/role.middleware');
 const { ROLES } = require('../../utils/constants');
 
-orgSessionRouter.use(authenticate, resolveOrg, authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN));
+orgSessionRouter.use(authenticate, resolveOrg, authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER));
 orgSessionRouter.get('/', validate({ query: sessionValidator.orgSessionQueryParams }), sessionController.listOrgSessions);
 orgSessionRouter.post('/:id/recording/start', sessionController.startRecording);
 orgSessionRouter.post('/:id/recording/stop', sessionController.stopRecording);

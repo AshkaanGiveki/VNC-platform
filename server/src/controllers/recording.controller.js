@@ -3,16 +3,48 @@
  * @module controllers/recording.controller
  */
 const recordingService = require('../services/recording.service');
+const { AuthorizationError } = require('../utils/errors');
 const { success, paginated } = require('../utils/response');
 
 const getRecordings = async (req, res, next) => {
   try {
-    const { recordings, meta } = await recordingService.getRecordings({
-      user: req.user,
-      queryParams: req.query,
-      organizationId: req.params.orgId, // optional
-    });
-    return paginated(res, recordings, meta);
+    const { parsePagination, applyPagination, buildMeta } = require('../utils/pagination');
+    const pagination = parsePagination(req.query);
+    const filter = {};
+
+    if (req.query.organizationId) {
+      // Superadmin can view any org; manager/org_admin must belong to the org
+      if (req.user.role === 'superadmin') {
+        filter.organizationId = req.query.organizationId;
+      } else if (req.user.role === 'manager' || req.user.role === 'org_admin') {
+        if (req.user.organizationId.toString() === req.query.organizationId.toString()) {
+          filter.organizationId = req.user.organizationId;
+        } else {
+          throw new AuthorizationError('You can only view recordings of your own organization');
+        }
+      }
+    } else {
+      // Regular user: only own recordings
+      if (req.user.role === 'user') {
+        filter.userId = req.user.userId;
+      }
+      // For superadmin without org filter, return all? We'll return all.
+    }
+
+    // Additional filters (status, etc.)
+    if (req.query.status) filter.status = req.query.status;
+
+    const [recordings, total] = await Promise.all([
+      applyPagination(
+        Recording.find(filter)
+          .populate('userId', 'firstName lastName email')
+          .sort({ createdAt: -1 }),
+        pagination
+      ).lean(),
+      Recording.countDocuments(filter),
+    ]);
+
+    return paginated(res, recordings, buildMeta(total, pagination));
   } catch (err) {
     next(err);
   }

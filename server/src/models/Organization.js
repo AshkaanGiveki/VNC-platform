@@ -48,7 +48,11 @@ const organizationSchema = new mongoose.Schema(
       recordingEnabled: {
         type: Boolean,
         default: false,
-      },
+      }
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {

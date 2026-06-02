@@ -4,6 +4,7 @@
  */
 const workspaceService = require('../services/workspace.service');
 const { success, paginated } = require('../utils/response');
+const UserWorkspace = require('../models/UserWorkspace');
 
 const createWorkspace = async (req, res, next) => {
   try {
@@ -94,6 +95,15 @@ const revokeWorkspace = async (req, res, next) => {
   }
 };
 
+const getAssignments = async (req, res, next) => {
+  try {
+    const assignments = await UserWorkspace.find({ workspaceId: req.params.id }).populate('userId', 'firstName lastName email');
+    return success(res, assignments);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createWorkspace,
   listWorkspaces,
@@ -102,4 +112,5 @@ module.exports = {
   deleteWorkspace,
   assignWorkspace,
   revokeWorkspace,
+  getAssignments
 };

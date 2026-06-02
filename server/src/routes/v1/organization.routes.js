@@ -26,5 +26,12 @@ router.post(
   validate({ body: orgValidator.createBodyWithManager }),
   orgController.createWithManager
 );
+router.put(
+  '/:id/manager',
+  authenticate, authorize(ROLES.SUPERADMIN),
+  validate({ params: orgValidator.orgIdParam, body: orgValidator.updateManagerBody }),
+  orgController.updateManager
+);
 
+router.get('/:id/manager', authenticate, authorize(ROLES.SUPERADMIN), orgController.getManager);
 module.exports = router;

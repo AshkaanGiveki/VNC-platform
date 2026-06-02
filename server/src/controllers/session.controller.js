@@ -3,6 +3,7 @@
  * @module controllers/session.controller
  */
 const sessionService = require('../services/session.service');
+const { buildMeta } = require('../utils/pagination');
 const { success, paginated } = require('../utils/response');
 
 const startSession = async (req, res, next) => {
@@ -87,7 +88,7 @@ const listOrgSessions = async (req, res, next) => {
       organizationId: req.params.orgId,
       queryParams: req.query,
     });
-    return paginated(res, sessions, meta);
+    return paginated(res, sessions, buildMeta(meta.total, meta));
   } catch (err) {
     next(err);
   }

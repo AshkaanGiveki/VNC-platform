@@ -668,12 +668,21 @@ async function listUserSessions({ user, queryParams }) {
  * Admin: list all sessions within an organization.
  */
 async function listOrgSessions({ organizationId, queryParams }) {
+  console.log('>>> listOrgSessions called with filter:', { organizationId, queryParams });
   const { parsePagination, applyPagination, buildMeta } = require('../utils/pagination');
   const pagination = parsePagination(queryParams);
 
   const filter = { organizationId };
-  if (queryParams.userId) filter.userId = queryParams.userId;
-  if (queryParams.status) filter.status = queryParams.status;
+
+  if (queryParams.userId) {
+    filter.userId = queryParams.userId;
+  }
+
+  if (queryParams.status) {
+    // Split comma‑separated string into an array for $in operator
+    const statusList = queryParams.status.split(',').map(s => s.trim());
+    filter.status = { $in: statusList };
+  }
 
   const [sessions, total] = await Promise.all([
     applyPagination(

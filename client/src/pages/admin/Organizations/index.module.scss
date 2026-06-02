@@ -13,6 +13,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  .status{
+    margin-right: 4px;
+    padding: 4px;
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: 8px;
+
+    &.inactive{
+      background-color: rgb(174, 12, 79);
+      color: white;
+    }
+  }
 }
 .domain {
   font-size: 0.8rem;

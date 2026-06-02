@@ -7,9 +7,6 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import { lazy, Suspense } from 'react';
 import Loader from './components/common/Loader';
 import apiClient from './services/apiClient';
-import SendNotification from './pages/admin/SendNotification';
-import ManagerSendNotification from './pages/manager/SendNotification';
-import ManagerRecordings from './pages/manager/Recordings';
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
@@ -32,6 +29,9 @@ const Profile = lazy(() => import('./pages/shared/Profile'));
 const NotFound = lazy(() => import('./pages/shared/NotFound'));
 const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
 const ManagerNotifications = lazy(() => import('./pages/manager/Notifications'));
+const ManagerSessions = lazy(() => import('./pages/manager/Sessions'));
+const SendNotification = lazy(() => import('./pages/shared/SendNotification'));
+const ManagerRecordings = lazy(() => import('./pages/manager/Recordings'));
 
 async function ensureUser() {
   const { auth } = store.getState();
@@ -92,9 +92,10 @@ export const router = createBrowserRouter([
       { path: '/manager/workspaces', element: <SuspenseWrapper><Workspaces /></SuspenseWrapper> },
       { path: '/manager/policies', element: <SuspenseWrapper><Policies /></SuspenseWrapper> },
       { path: '/manager/notifications', element: <SuspenseWrapper><ManagerNotifications /></SuspenseWrapper> },
-      { path: '/manager/sendnotifications', element: <SuspenseWrapper><ManagerSendNotification /></SuspenseWrapper> },
+      { path: '/manager/sendnotifications', element: <SuspenseWrapper><SendNotification /></SuspenseWrapper> },
       { path: '/manager/recordings', element: <SuspenseWrapper><ManagerRecordings /></SuspenseWrapper> },
-    ],
+      { path: '/manager/sessions', element: <SuspenseWrapper><ManagerSessions /></SuspenseWrapper> },
+      ],
   },
   {
     element: <DashboardLayout />,

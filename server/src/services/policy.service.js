@@ -91,8 +91,8 @@ async function updateTemplate({ actor, templateId, organizationId, updates }) {
  * Delete a template (cannot delete if set as default).
  */
 async function deleteTemplate({ actor, templateId, organizationId }) {
-  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER].includes(actor.role)) {
-    throw new AuthorizationError('Only admins & managers can delete policy templates');
+  if (![ROLES.ORG_ADMIN, ROLES.SUPERADMIN, , ROLES.MANAGER].includes(actor.role)) {
+    throw new AuthorizationError('Only admins can delete policy templates');
   }
 
   const template = await PolicyTemplate.findOne({ _id: templateId, organizationId });
@@ -101,7 +101,8 @@ async function deleteTemplate({ actor, templateId, organizationId }) {
     throw new ConflictError('Cannot delete the default policy template. Set another as default first.');
   }
 
-  await template.remove();
+  await PolicyTemplate.findByIdAndDelete(templateId);   // ← fixed
+
   logger.info(`Policy template deleted: ${template.name}`);
   await logAction({
     action: 'policyTemplate.deleted',

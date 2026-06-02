@@ -5,13 +5,10 @@
 const userService = require('../services/user.service');
 const { success, paginated } = require('../utils/response');
 const UserWorkspace = require('../models/UserWorkspace');
+const User = require('../models/User');
 
 const createUser = async (req, res, next) => {
-  if (actor.role === ROLES.ORG_ADMIN && (userData.role && userData.role !== ROLES.USER)) {
-    throw new AuthorizationError('Admins can only create regular users');
-  }
   try {
-    console.log(req.user);
     const user = await userService.createUser({
       actor: req.user,
       organizationId: req.params.orgId,
@@ -44,28 +41,6 @@ const getUser = async (req, res, next) => {
   }
 };
 
-// const updateUser = async (req, res, next) => {
-//   if (actor.role === ROLES.ORG_ADMIN && updates.role) {
-//     throw new AuthorizationError('Admins cannot change roles');
-//   }
-//   if (actor.role === ROLES.ORG_ADMIN) {
-//     const targetUser = await User.findById(userId);
-//     if (!targetUser) throw new NotFoundError('User not found');
-//     if (targetUser.role !== ROLES.USER) {
-//       throw new AuthorizationError('Admins can only modify regular users');
-//     }
-//   }
-//   try {
-//     const user = await userService.updateUser({
-//       actor: req.user,
-//       userId: req.params.userId,
-//       updates: req.body,
-//     });
-//     return success(res, user);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 const updateUser = async (req, res, next) => {
   try {
     const user = await userService.updateUser({
@@ -99,7 +74,7 @@ const getMyWorkspaces = async (req, res, next) => {
       .populate({
         path: 'workspaceId',
         match: { isActive: true },
-        populate: { path: 'imageId', select: 'name type' }
+        populate: { path: 'imageId', select: 'name type iconUrl' }
       })
       .lean();
 
@@ -109,6 +84,50 @@ const getMyWorkspaces = async (req, res, next) => {
     next(err);
   }
 };
+const getAllUsers = async (req, res, next) => {
+  try {
+    const { parsePagination, applyPagination, buildMeta } = require('../utils/pagination');
+    const pagination = parsePagination(req.query);
+    const filter = {};
+
+    if (req.query.role) {
+      const roles = req.query.role.split(',').map(r => r.trim());
+      filter.role = { $in: roles };
+    }
+
+    if (req.query.search) {
+      const searchStr = req.query.search.trim();
+      if (searchStr.includes(' ')) {
+        const escaped = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filter.$expr = {
+          $regexMatch: {
+            input: { $concat: ['$firstName', ' ', '$lastName'] },
+            regex: escaped,
+            options: 'i',
+          },
+        };
+      } else {
+        filter.$or = [
+          { firstName: { $regex: searchStr, $options: 'i' } },
+          { lastName: { $regex: searchStr, $options: 'i' } },
+          { email: { $regex: searchStr, $options: 'i' } },
+        ];
+      }
+    }
+
+    const [users, total] = await Promise.all([
+      applyPagination(
+        User.find(filter).populate('organizationId', 'name').sort({ createdAt: -1 }),
+        pagination
+      ).lean(),
+      User.countDocuments(filter),
+    ]);
+
+    return paginated(res, users, buildMeta(total, pagination));
+  } catch (err) {
+    next(err);
+  }
+};
 
 
-module.exports = { createUser, getMyWorkspaces, listUsers, getUser, updateUser, deleteUser };
+module.exports = { createUser, getMyWorkspaces, listUsers, getUser, updateUser, deleteUser, getAllUsers };

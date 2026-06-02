@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Organization = require('../models/Organization');
 const {
     signAccessToken,
     signRefreshToken,
@@ -14,11 +15,21 @@ async function login(email, password, organizationId = null) {
     if (organizationId) {
         query.organizationId = organizationId;
     }
-    // If no organizationId provided, we search across all orgs (superadmin has organizationId null)
 
     const user = await User.findOne(query).select('+password');
     if (!user) throw new AuthenticationError('Invalid credentials');
 
+    // If user belongs to an organization, check that the org is active
+    if (user.organizationId) {
+        const org = await Organization.findById(user.organizationId).lean();
+        if (!org || !org.isActive) {
+            throw new AuthenticationError('Organization is disabled. Contact your administrator.');
+        }
+    }
+
+    if (!user.isActive) {
+        throw new AuthenticationError('Your account has been blocked. Contact your administrator.');
+    }
     const isMatch = await user.comparePassword(password);
     if (!isMatch) throw new AuthenticationError('Invalid credentials');
 
@@ -41,6 +52,13 @@ async function refreshAccessToken(refreshToken) {
     const user = await User.findById(decoded.userId).select('+password');
     if (!user || !user.isActive) throw new AuthenticationError('User no longer exists');
 
+    // Check organization is active
+    if (user.organizationId) {
+        const org = await Organization.findById(user.organizationId).lean();
+        if (!org || !org.isActive) {
+            throw new AuthenticationError('Organization is disabled.');
+        }
+    }
     if (user.changedPasswordAfter(decoded.iat)) {
         throw new AuthenticationError('Password changed, please log in again');
     }
