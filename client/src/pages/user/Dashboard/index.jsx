@@ -7,20 +7,26 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import styles from './index.module.scss';
-import { toJalali } from '../../../utils/formatDate';
 
 export default function UserDashboard() {
   const { user } = useSelector((state) => state.auth);
+  const currentUserId = user?.userId;   // ← define
+
   const { data: sessions, isLoading: sessLoading } = useQuery({
     queryKey: ['userSessions'],
     queryFn: () => getUserSessions({ status: 'running' }),
   });
-  const { data: notifications, isLoading: notifLoading } = useQuery({
-    queryKey: ['userNotifications'],
-    queryFn: () => getNotifications({ unreadOnly: true, limit: 5 }),
+
+  const { data: unreadNotifs, isLoading: notifLoading } = useQuery({
+    queryKey: ['unreadNotificationsCount', currentUserId],
+    queryFn: () => getNotifications({ unreadOnly: true, limit: 1 }),
+    enabled: !!currentUserId,
   });
 
   if (sessLoading || notifLoading) return <Loader fullScreen />;
+
+  const activeSessions = sessions?.data?.data?.length || 0;
+  const unreadCount = unreadNotifs?.data?.meta?.total || 0;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={styles.dashboard}>
@@ -28,12 +34,12 @@ export default function UserDashboard() {
       <div className={styles.grid}>
         <Card>
           <h3>نشست‌های فعال</h3>
-          <p className={styles.count}>{sessions?.data?.data?.length || 0}</p>
+          <p className={styles.count}>{activeSessions}</p>
           <Link to="/user/sessions">مشاهده همه</Link>
         </Card>
         <Card>
           <h3>اعلان‌های خوانده نشده</h3>
-          <p className={styles.count}>{notifications?.data?.data?.length || 0}</p>
+          <p className={styles.count}>{unreadCount}</p>
           <Link to="/user/notifications">مشاهده همه</Link>
         </Card>
       </div>

@@ -9,66 +9,90 @@ import Loader from '../../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
+import NoItem from '../../../components/common/NoItem';
 
 const containerVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.08 } },
 };
-
 const itemVariants = {
-  hidden: { opacity: 0, scale: 0.9 },
+  hidden: { opacity: 0, scale: 0.95 },
   show: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
 };
 
 export default function Images() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingImg, setEditingImg] = useState(null);
   const [form, setForm] = useState({
     name: '',
     type: 'custom',
     dockerImage: '',
     version: 'latest',
+    iconUrl: '',
   });
 
-  // Fetch images
   const { data, isLoading } = useQuery({
     queryKey: ['images'],
     queryFn: getImages,
   });
 
-  // Toggle enable/disable
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, isEnabled }) => updateImage(id, { isEnabled: !isEnabled }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['images']);
-      toast.success('وضعیت تصویر تغییر کرد');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
-  });
-
-  // Create image
   const createMutation = useMutation({
     mutationFn: createImage,
     onSuccess: () => {
       queryClient.invalidateQueries(['images']);
       toast.success('تصویر اضافه شد');
-      setModalOpen(false);
-      setForm({ name: '', type: 'custom', dockerImage: '', version: 'latest' });
+      closeModal();
     },
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
 
-  const handleCreate = () => {
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateImage(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['images']);
+      toast.success('تصویر به‌روزرسانی شد');
+      closeModal();
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isEnabled }) => updateImage(id, { isEnabled: !isEnabled }),
+    onSuccess: () => queryClient.invalidateQueries(['images']),
+  });
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingImg(null);
+    setForm({ name: '', type: 'custom', dockerImage: '', version: 'latest', iconUrl: '' });
+  };
+
+  const handleEdit = (img) => {
+    setEditingImg(img);
+    setForm({
+      name: img.name,
+      type: img.type,
+      dockerImage: img.dockerImage,
+      version: img.version,
+      iconUrl: img.iconUrl || '',
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = () => {
     if (!form.name.trim() || !form.dockerImage.trim()) {
       toast.error('نام و آدرس تصویر الزامی هستند');
       return;
     }
-    createMutation.mutate(form);
+    if (editingImg) {
+      updateMutation.mutate({ id: editingImg._id, data: form });
+    } else {
+      createMutation.mutate(form);
+    }
   };
 
   if (isLoading) return <Loader fullScreen />;
-
-  const images = data?.data?.data || [];
 
   return (
     <div>
@@ -77,55 +101,53 @@ export default function Images() {
         <Button onClick={() => setModalOpen(true)}>افزودن تصویر</Button>
       </div>
 
-      <motion.div
-        className={styles.grid}
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
-        {images.map((img) => (
+      <motion.div className={styles.grid} variants={containerVariants} initial="hidden" animate="show">
+        {data?.data?.data?.length === 0 ?
+                  <div className={styles.noItem}>
+                    <NoItem />
+                  </div> :
+                  data?.data?.data?.map((img) => (
           <motion.div key={img._id} variants={itemVariants}>
             <Card className={styles.imageCard}>
-              <div className={styles.info}>
-                <h3>{img.name}</h3>
-                <p className={styles.type}>
-                  {img.type} | {img.version}
-                </p>
-                <p className={styles.dockerImage}>{img.dockerImage}</p>
+              <div className={styles.top}>
+                {img.iconUrl ? (
+                  <img src={img.iconUrl} alt={img.name} className={styles.imagePreview} />
+                ) : (
+                  <div className={styles.defaultImage}>🖼️</div>
+                )}
+                <div className={styles.info}>
+                  <h3>{img.name}</h3>
+                  <p className={styles.meta}>
+                    {img.type} | v{img.version}
+                  </p>
+                  <p className={styles.dockerRef}>{img.dockerImage}</p>
+                </div>
               </div>
               <div className={styles.actions}>
-                <span className={img.isEnabled ? styles.active : styles.inactive}>
+                <span className={`${styles.statusBadge} ${img.isEnabled ? styles.active : styles.inactive}`}>
                   {img.isEnabled ? 'فعال' : 'غیرفعال'}
                 </span>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() =>
-                    toggleMutation.mutate({ id: img._id, isEnabled: img.isEnabled })
-                  }
-                >
-                  {img.isEnabled ? 'غیرفعال کردن' : 'فعال کردن'}
-                </Button>
+                <div className={styles.btnGroup}>
+                  <Button size="sm" variant="secondary" onClick={() => handleEdit(img)}>
+                    ویرایش
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => toggleMutation.mutate({ id: img._id, isEnabled: img.isEnabled })}
+                  >
+                    {img.isEnabled ? 'غیرفعال‌سازی' : 'فعال‌سازی'}
+                  </Button>
+                </div>
               </div>
             </Card>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Create Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="افزودن تصویر جدید"
-      >
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editingImg ? 'ویرایش تصویر' : 'افزودن تصویر'}>
         <div className={styles.form}>
-          <FormField
-            label="نام تصویر"
-            placeholder="مثال: Ubuntu Focal Desktop"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
+          <FormField label="نام تصویر" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <FormField
             label="نوع"
             as="select"
@@ -133,26 +155,12 @@ export default function Images() {
             onChange={(e) => setForm({ ...form, type: e.target.value })}
             options={['ubuntu', 'chrome', 'firefox', 'onlyoffice', 'custom']}
           />
-          <FormField
-            label="آدرس Docker (Docker Image)"
-            placeholder="مثال: kasmweb/ubuntu-focal-desktop:1.14.0"
-            value={form.dockerImage}
-            onChange={(e) => setForm({ ...form, dockerImage: e.target.value })}
-            required
-          />
-          <FormField
-            label="نسخه"
-            value={form.version}
-            onChange={(e) => setForm({ ...form, version: e.target.value })}
-            placeholder="latest"
-          />
+          <FormField label="آدرس Docker" value={form.dockerImage} onChange={(e) => setForm({ ...form, dockerImage: e.target.value })} required />
+          <FormField label="نسخه" value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} />
+          <FormField label="آدرس تصویر (URL)" value={form.iconUrl} onChange={(e) => setForm({ ...form, iconUrl: e.target.value })} placeholder="https://example.com/icon.png" />
           <div className={styles.modalActions}>
-            <Button onClick={handleCreate} loading={createMutation.isLoading}>
-              افزودن
-            </Button>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>
-              انصراف
-            </Button>
+            <Button onClick={handleSave} loading={createMutation.isLoading || updateMutation.isLoading}>ذخیره</Button>
+            <Button variant="secondary" onClick={closeModal}>انصراف</Button>
           </div>
         </div>
       </Modal>

@@ -6,3 +6,4 @@ export const logout = () => apiClient.post('/auth/logout');
 export const getCsrfToken = () => apiClient.get('/auth/csrf-token');
 export const forgotPassword = (email) => apiClient.post('/auth/forgot-password', { email });
 export const resetPassword = (token, newPassword) => apiClient.post('/auth/reset-password', { token, newPassword });
+export const changePassword = (data) => apiClient.post('/auth/change-password', data);

@@ -44,3 +44,13 @@
   color: var(--text-secondary);
   margin-top: 20px;
 }
+
+.errorBanner {
+  background: #e74c3c15;
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}

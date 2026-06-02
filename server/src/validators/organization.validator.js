@@ -73,10 +73,47 @@ const queryParams = Joi.object({
   order: Joi.string().valid('asc', 'desc').default('desc'),
 });
 
+const createBodyWithManager = Joi.object({
+  name: Joi.string().trim().max(100).required(),
+  domain: Joi.string().trim().lowercase().optional(),
+  defaultPolicy: Joi.object({
+    filePersistence: Joi.boolean().default(false),
+    clipboard: Joi.boolean().default(true),
+    audio: Joi.boolean().default(true),
+    webcam: Joi.boolean().default(false),
+    microphone: Joi.boolean().default(false),
+    downloadEnabled: Joi.boolean().default(false),
+    uploadEnabled: Joi.boolean().default(true),
+    maxSessionDuration: Joi.number().integer().min(0).default(0),
+  }).optional(),
+  settings: Joi.object({
+    maxUsers: Joi.number().integer().min(1).default(100),
+    maxSessionsPerUser: Joi.number().integer().min(1).default(5),
+    recordingEnabled: Joi.boolean().default(false),
+  }).optional(),
+  manager: Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().min(8).required(),
+    firstName: Joi.string().trim().max(50).required(),
+    lastName: Joi.string().trim().max(50).required(),
+  }).required(),
+});
+
+
+const updateManagerBody = Joi.object({
+  email: Joi.string().email().optional(),
+  password: Joi.string().min(8).optional(),
+  firstName: Joi.string().trim().max(50).optional(),
+  lastName: Joi.string().trim().max(50).optional(),
+  isActive: Joi.boolean().optional(),
+}).min(1);
+
 module.exports = {
   createBody,
   createBodyWithAdmin,
   updateBody,
   orgIdParam,
   queryParams,
+  createBodyWithManager,
+  updateManagerBody
 };

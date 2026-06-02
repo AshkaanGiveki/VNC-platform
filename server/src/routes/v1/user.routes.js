@@ -11,6 +11,7 @@ const { ROLES } = require('../../utils/constants');
 router.use(authenticate, resolveOrg);
 
 // Superadmin, org_admin, and manager can create users
+// POST – create user
 router.post(
   '/',
   authorize(ROLES.SUPERADMIN, ROLES.ORG_ADMIN, ROLES.MANAGER),
@@ -23,6 +24,8 @@ router.get(
   validate({ query: userValidator.queryParams }),
   userController.listUsers
 );
+
+router.get('/all', authenticate, authorize(ROLES.SUPERADMIN), validate({ query: userValidator.queryParams }), userController.getAllUsers);
 
 router.get(
   '/:userId',

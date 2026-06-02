@@ -1,5 +1,6 @@
 const { verifyAccessToken, isTokenBlacklisted } = require('../utils/token');
 const User = require('../models/User');
+const Organization = require('../models/Organization');   // ← ADD THIS
 const { AuthenticationError } = require('../utils/errors');
 const logger = require('../utils/logger');
 
@@ -33,6 +34,14 @@ async function authenticate(req, res, next) {
     const user = await User.findById(decoded.userId).select('-password -refreshTokens');
     if (!user || !user.isActive) {
       throw new AuthenticationError('User no longer exists or is inactive');
+    }
+
+    // Check organization is active (if user belongs to one)
+    if (user.organizationId) {
+      const org = await Organization.findById(user.organizationId).lean();
+      if (!org || !org.isActive) {
+        throw new AuthenticationError('Organization is disabled. Contact your administrator.');
+      }
     }
 
     if (user.changedPasswordAfter(decoded.iat)) {

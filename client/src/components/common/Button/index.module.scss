@@ -26,6 +26,12 @@
   border: 1px solid var(--accent);
   &:hover { background: var(--accent); color: white; }
 }
+
+.danger {
+  background: #e74c3c;
+  color: white;
+  &:hover { background: #c0392b; }
+}
 .sm { padding: 6px 12px; font-size: 0.8rem; }
 .md { padding: 10px 18px; font-size: 0.9rem; }
 .lg { padding: 12px 24px; font-size: 1rem; }

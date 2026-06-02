@@ -19,5 +19,5 @@ router.delete('/:id', authorize(ROLES.ORG_ADMIN, ROLES.MANAGER), validate({ para
 router.post('/:id/assign', authorize(ROLES.ORG_ADMIN, ROLES.MANAGER), validate({ params: workspaceValidator.workspaceIdParam, body: workspaceValidator.assignBody || require('../../validators/workspace.validator').assignBody }), workspaceController.assignWorkspace);
 // Need assignBody validator – we'll add it to workspace.validator
 router.delete('/:id/assign/:userId', authorize(ROLES.ORG_ADMIN, ROLES.MANAGER), validate({ params: workspaceValidator.workspaceIdParam }), workspaceController.revokeWorkspace);
-
+router.get('/:id/assignments', authenticate, resolveOrg, authorize(ROLES.ORG_ADMIN, ROLES.MANAGER), workspaceController.getAssignments);
 module.exports = router;

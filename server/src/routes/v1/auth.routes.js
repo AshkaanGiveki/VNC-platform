@@ -9,7 +9,6 @@ router.post('/login', validate({ body: authValidator.loginBody }), authControlle
 router.post('/refresh', validate({ body: authValidator.refreshBody }), authController.refreshToken);
 router.post('/forgot-password', validate({ body: authValidator.forgotPasswordBody }), authController.forgotPassword);
 router.post('/reset-password', validate({ body: authValidator.resetPasswordBody }), authController.resetPassword);
-
 // Get CSRF token (call after login)
 router.get('/csrf-token', generateCsrfToken, (req, res) => {
   res.json({ success: true, token: req.csrfToken });
@@ -17,6 +16,7 @@ router.get('/csrf-token', generateCsrfToken, (req, res) => {
 
 // Authenticated route – logout
 const authenticate = require('../../middleware/auth.middleware');
+router.post('/change-password', authenticate, validate({ body: authValidator.changePasswordBody }), authController.changePassword);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.me);          // ← new
 module.exports = router;

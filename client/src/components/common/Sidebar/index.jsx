@@ -19,6 +19,7 @@ import sessions from '../../../assets/icons/sessions.png';
 import recordings from '../../../assets/icons/recordings.png';
 import notifications from '../../../assets/icons/notification.png';
 import themeIcon from '../../../assets/icons/theme.png';
+import sendNotif from '../../../assets/icons/sendNotif.png';
 
 const menuItems = {
   superadmin: [
@@ -26,19 +27,36 @@ const menuItems = {
     { path: ROUTES.ADMIN_ORGANIZATIONS, icon: organizations, label: 'سازمان‌ها' },
     { path: ROUTES.ADMIN_IMAGES, icon: images, label: 'تصاویر' },
     { path: ROUTES.ADMIN_LOGS, icon: logs, label: 'گزارشات' },
+    { path: ROUTES.ADMIN_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
+    { path: ROUTES.ADMIN_SEND_NOTIFICATION, icon: sendNotif, label: 'ارسال اعلان' },
   ],
   org_admin: [
     { path: ROUTES.MANAGER_DASHBOARD, icon: dashboard, label: 'داشبورد' },
     { path: ROUTES.MANAGER_USERS, icon: users, label: 'کاربران' },
     { path: ROUTES.MANAGER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
     { path: ROUTES.MANAGER_POLICIES, icon: policies, label: 'قوانین' },
+    { path: ROUTES.MANAGER_SESSIONS, icon: sessions, label: 'نشست‌ها' },
+    { path: ROUTES.MANAGER_RECORDINGS, icon: recordings, label: 'ضبط‌ها' },
+    { path: ROUTES.MANAGER_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
+    { path: ROUTES.MANAGER_SEND_NOTIFICATIONS, icon: sendNotif, label: 'ارسال اعلان' },
+  
   ],
   user: [
     { path: ROUTES.USER_DASHBOARD, icon: dashboard, label: 'داشبورد' },
     { path: ROUTES.USER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
     { path: ROUTES.USER_SESSIONS, icon: sessions, label: 'نشست‌ها' },
-    { path: ROUTES.USER_RECORDINGS, icon: recordings, label: 'ضبط‌ها' },
     { path: ROUTES.USER_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
+  ],
+   manager: [
+    { path: ROUTES.MANAGER_DASHBOARD, icon: dashboard, label: 'داشبورد' },
+    { path: ROUTES.MANAGER_USERS, icon: users, label: 'کاربران' },
+    { path: ROUTES.MANAGER_WORKSPACES, icon: workspaces, label: 'فضاهای کاری' },
+    { path: ROUTES.MANAGER_SESSIONS, icon: sessions, label: 'نشست‌ها' },
+    { path: ROUTES.MANAGER_POLICIES, icon: policies, label: 'قوانین' },
+    { path: ROUTES.MANAGER_RECORDINGS, icon: recordings, label: 'ضبط‌ها' },
+    { path: ROUTES.MANAGER_NOTIFICATIONS, icon: notifications, label: 'اعلان‌ها' },
+    { path: ROUTES.MANAGER_SEND_NOTIFICATIONS, icon: sendNotif, label: 'ارسال اعلان' },
+  
   ],
 };
 
@@ -82,7 +100,7 @@ export default function Sidebar() {
                       }}
                     />
                   )}
-                  <img className={styles.icon} src={item.icon} />
+                  <img className={`${styles.icon} icon`} src={item.icon} />
                   {sidebarOpen && (
                     <span className={styles.label}>{item.label}</span>
                   )}

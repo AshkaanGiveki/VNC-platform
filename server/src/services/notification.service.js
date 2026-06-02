@@ -32,16 +32,37 @@ async function createNotification({
   if (!scope || !Object.values(NOTIFICATION_SCOPE).includes(scope)) {
     throw new AppError('Invalid notification scope', 400);
   }
-  if (!recipientIds || !Array.isArray(recipientIds) || recipientIds.length === 0) {
-    throw new AppError('At least one recipient is required', 400);
+  if (scope === 'user' && (!recipientIds || recipientIds.length === 0)) {
+    throw new AppError('At least one recipient is required for user scope', 400);
   }
-  if (!title) {
-    throw new AppError('Notification title is required', 400);
+
+  
+  // If scope is platform or organization, we need to fetch recipient IDs.
+  let finalRecipients = recipientIds || [];
+  if (scope === 'platform') {
+    const User = require('../models/User');
+    const users = await User.find({ isActive: true }).select('_id');
+    finalRecipients = users.map(u => u._id);
+  } else if (scope === 'admins') {
+    if (!organizationId) throw new AppError('Organization ID is required for admins scope', 400);
+    const User = require('../models/User');
+    const users = await User.find({
+      organizationId,
+      role: { $in: ['org_admin'] },
+      isActive: true,
+    }).select('_id');
+    finalRecipients = users.map(u => u._id);
+  }
+  else if (scope === 'organization') {
+    if (!organizationId) throw new AppError('Organization ID is required for organization scope', 400);
+    const User = require('../models/User');
+    const users = await User.find({ organizationId, isActive: true }).select('_id');
+    finalRecipients = users.map(u => u._id);
   }
 
   const notificationPayload = {
     scope,
-    recipientIds: recipientIds.map(id => id.toString()),
+    recipientIds: finalRecipients.map(id => id.toString()),
     category,
     title,
     body,
@@ -49,20 +70,15 @@ async function createNotification({
     createdAt: new Date(),
   };
 
-  try {
-    const channel = getChannel();
-    channel.publish(
-      'notifications',
-      'notification.created',
-      Buffer.from(JSON.stringify(notificationPayload)),
-      { persistent: true, contentType: 'application/json' }
-    );
-    logger.debug(`Notification published: ${title}`);
-  } catch (err) {
-    logger.error(`Failed to publish notification: ${err.message}`);
-    // We rethrow so the caller can decide to handle failure
-    throw new AppError('Notification delivery failed', 500);
-  }
+  // Publish to RabbitMQ as before
+  const { getChannel } = require('../config/rabbitmq');
+  const channel = getChannel();
+  channel.publish(
+    'notifications',
+    'notification.created',
+    Buffer.from(JSON.stringify(notificationPayload)),
+    { persistent: true, contentType: 'application/json' }
+  );
 }
 
 module.exports = { createNotification };

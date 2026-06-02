@@ -1,0 +1,169 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selectedList {
+  display: block;
+}
+
+
+.inputWrapper {
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
+
+  &.selected {
+    background: var(--accent);
+    color: white;
+    pointer-events: none;
+    border-bottom: 1px solid white;
+
+    .email {
+      color: white;
+    }
+
+    .orgLabel,
+    .orgName {
+      color: white;
+    }
+  }
+}
+
+.email {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.loading,
+.noResult {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.userOption {
+  display: flex;
+  flex-direction: column;
+}
+
+.orgLabel,
+.orgName {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.orgName {
+  margin-right: 4px;
+  color: var(--text-secondary);
+}
+
+
+.assignedItem {
+  float: right;
+  padding: 4px 6px;
+  display: block;
+  height: 24px;
+  background-color: var(--text-primary);
+  margin-left: 3px;
+  margin-bottom: 3px;
+  border-radius: 5px;
+
+  .name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    float: right;
+    color: var(--bg-primary);
+
+  }
+
+  .unassign {
+    float: right;
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.7;
+    margin-right: 8px;
+    cursor: pointer;
+    transition: opacity ease-in-out 300ms;
+
+    >img {
+      width: 8px;
+      height: 8px;
+      filter: invert(1);
+    }
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.showAllButton {
+  float: right;
+  padding: 4px 6px;
+  display: block;
+  height: 24px;
+  background-color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 3px;
+  margin-bottom: 3px;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  >img{
+    float: right;
+    height: 16px;
+    width: 16px;
+    margin: 0px 10px 0px 10px;
+    filter: invert(1);
+  }
+}
+
+.modalList {
+  display: block;
+  max-height: 60vh;
+  overflow-y: auto;
+}

@@ -27,8 +27,12 @@ const Recordings = lazy(() => import('./pages/user/Recordings'));
 const Notifications = lazy(() => import('./pages/user/Notifications'));
 const Profile = lazy(() => import('./pages/shared/Profile'));
 const NotFound = lazy(() => import('./pages/shared/NotFound'));
+const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
+const ManagerNotifications = lazy(() => import('./pages/manager/Notifications'));
+const ManagerSessions = lazy(() => import('./pages/manager/Sessions'));
+const SendNotification = lazy(() => import('./pages/shared/SendNotification'));
+const ManagerRecordings = lazy(() => import('./pages/manager/Recordings'));
 
-// Ensure user object exists, fetch if necessary
 async function ensureUser() {
   const { auth } = store.getState();
   if (auth.isAuthenticated && !auth.user) {
@@ -44,11 +48,13 @@ async function ensureUser() {
   return auth;
 }
 
-// Role‑protected route loader
-async function requireAuth(role) {
+async function requireAuth(roles) {
   const auth = await ensureUser();
   if (!auth.isAuthenticated) return redirect(ROUTES.LOGIN);
-  if (role && auth.user?.role !== role) return redirect(ROUTES.NOT_FOUND);
+  if (roles) {
+    const roleList = Array.isArray(roles) ? roles : [roles];
+    if (!roleList.includes(auth.user?.role)) return redirect(ROUTES.NOT_FOUND);
+  }
   return null;
 }
 
@@ -73,17 +79,23 @@ export const router = createBrowserRouter([
       { path: '/admin/organizations', element: <SuspenseWrapper><Organizations /></SuspenseWrapper> },
       { path: '/admin/images', element: <SuspenseWrapper><Images /></SuspenseWrapper> },
       { path: '/admin/logs', element: <SuspenseWrapper><Logs /></SuspenseWrapper> },
+      { path: '/admin/sendnotifications', element: <SuspenseWrapper><SendNotification /></SuspenseWrapper> },
+      { path: '/admin/notifications', element: <SuspenseWrapper><AdminNotifications /></SuspenseWrapper> },
     ],
   },
   {
     element: <DashboardLayout />,
-    loader: () => requireAuth('org_admin'),
+    loader: () => requireAuth(['org_admin', 'manager']),   // ← FIXED
     children: [
       { path: '/manager', element: <SuspenseWrapper><ManagerDashboard /></SuspenseWrapper> },
       { path: '/manager/users', element: <SuspenseWrapper><Users /></SuspenseWrapper> },
       { path: '/manager/workspaces', element: <SuspenseWrapper><Workspaces /></SuspenseWrapper> },
       { path: '/manager/policies', element: <SuspenseWrapper><Policies /></SuspenseWrapper> },
-    ],
+      { path: '/manager/notifications', element: <SuspenseWrapper><ManagerNotifications /></SuspenseWrapper> },
+      { path: '/manager/sendnotifications', element: <SuspenseWrapper><SendNotification /></SuspenseWrapper> },
+      { path: '/manager/recordings', element: <SuspenseWrapper><ManagerRecordings /></SuspenseWrapper> },
+      { path: '/manager/sessions', element: <SuspenseWrapper><ManagerSessions /></SuspenseWrapper> },
+      ],
   },
   {
     element: <DashboardLayout />,

@@ -1,7 +1,3 @@
-/**
- * Notification request validation schemas.
- * @module validators/notification.validator
- */
 const Joi = require('joi');
 const {
   NOTIFICATION_CATEGORIES,
@@ -10,13 +6,15 @@ const {
 
 const createBody = Joi.object({
   scope: Joi.string()
-    .valid(...Object.values(NOTIFICATION_SCOPE))
+    .valid(...Object.values(NOTIFICATION_SCOPE), 'admins')
     .required(),
   recipientIds: Joi.array()
     .items(Joi.string().hex().length(24))
-    .min(1)
-    .required()
-    .messages({ 'array.min': 'At least one recipient is required' }),
+    .when('scope', {
+      is: Joi.valid('user', 'admins'),
+      then: Joi.array().min(1).required(),          // ← fixed
+      otherwise: Joi.array().optional(),
+    }),
   category: Joi.string()
     .valid(...Object.values(NOTIFICATION_CATEGORIES))
     .default(NOTIFICATION_CATEGORIES.INFO),

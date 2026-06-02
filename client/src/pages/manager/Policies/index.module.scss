@@ -18,8 +18,13 @@
 }
 
 .default {
-    color: var(--accent);
-    font-size: 0.8rem;
+    margin-right: 4px;
+    padding: 4px;
+    background-color: var(--accent);
+    color: var(--bg-primary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: 8px;
 }
 
 .actions {

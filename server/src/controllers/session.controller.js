@@ -3,6 +3,7 @@
  * @module controllers/session.controller
  */
 const sessionService = require('../services/session.service');
+const { buildMeta } = require('../utils/pagination');
 const { success, paginated } = require('../utils/response');
 
 const startSession = async (req, res, next) => {
@@ -87,11 +88,42 @@ const listOrgSessions = async (req, res, next) => {
       organizationId: req.params.orgId,
       queryParams: req.query,
     });
-    return paginated(res, sessions, meta);
+    return paginated(res, sessions, buildMeta(meta.total, meta));
   } catch (err) {
     next(err);
   }
 };
+
+
+const startRecording = async (req, res, next) => {
+  try {
+    // Verify session belongs to manager's org
+    const session = await Session.findById(req.params.id);
+    if (!session) throw new NotFoundError('Session not found');
+    if (session.organizationId.toString() !== req.user.organizationId.toString()) {
+      throw new AuthorizationError('You can only record sessions in your organization');
+    }
+    const recording = await recordingService.startRecording(req.params.id);
+    return success(res, recording, 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const stopRecording = async (req, res, next) => {
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) throw new NotFoundError('Session not found');
+    if (session.organizationId.toString() !== req.user.organizationId.toString()) {
+      throw new AuthorizationError('Unauthorized');
+    }
+    const recording = await recordingService.stopRecording(req.params.id);
+    return success(res, recording);
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 module.exports = {
   startSession,
@@ -101,4 +133,6 @@ module.exports = {
   getSession,
   listUserSessions,
   listOrgSessions,
+  startRecording,
+  stopRecording
 };

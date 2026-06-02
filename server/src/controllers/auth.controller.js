@@ -1,38 +1,25 @@
 const authService = require('../services/auth.service');
+const User = require('../models/User');
 const { success } = require('../utils/response');
+const { AuthenticationError, NotFoundError } = require('../utils/errors');
 
 const login = async (req, res, next) => {
   try {
     const { email, password, organizationId } = req.body;
     const result = await authService.login(email, password, organizationId);
 
-    // Set access & refresh tokens as cookies
     res.cookie('accessToken', result.accessToken, {
-      httpOnly: false,                 // frontend can read it if needed
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,         // 15 minutes
+      maxAge: 15 * 60 * 1000,
     });
-
     res.cookie('refreshToken', result.refreshToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-
-    // res.cookie('accessToken', result.accessToken, {
-    //   httpOnly: false,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',                     // ← was 'strict'
-    //   maxAge: 15 * 60 * 1000,
-    // });
-    // res.cookie('refreshToken', result.refreshToken, {
-    //   httpOnly: false,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',
-    //   maxAge: 7 * 24 * 60 * 60 * 1000,
-    // });
 
     return success(res, result, 200);
   } catch (err) {
@@ -56,7 +43,6 @@ const logout = async (req, res, next) => {
     const { refreshToken } = req.body;
     await authService.logout(accessToken, refreshToken);
 
-    // Clear cookies
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
     res.clearCookie('csrf-token');
@@ -87,11 +73,25 @@ const resetPassword = async (req, res, next) => {
 
 const me = async (req, res, next) => {
   try {
-    // req.user is attached by authenticate middleware
     return success(res, { user: req.user }, 200);
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { login, refreshToken, logout, forgotPassword, resetPassword, me };
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.userId).select('+password');
+    if (!user) throw new NotFoundError('User not found');
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) throw new AuthenticationError('Current password is incorrect');
+    user.password = newPassword;
+    await user.save();
+    return success(res, { message: 'Password changed successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { login, refreshToken, logout, forgotPassword, resetPassword, me, changePassword };

@@ -20,13 +20,15 @@ import Loader from '../../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
+import NoItem from '../../../components/common/NoItem';
+import apiClient from '../../../services/apiClient';
+import UserSelect from '../../../components/common/UserSelect';
+import crossIcon from '../../../assets/icons/cancel.png'
 
 // Stagger animation variants
 const containerVariants = {
   hidden: {},
-  show: {
-    transition: { staggerChildren: 0.05 },
-  },
+  show: { transition: { staggerChildren: 0.05 } },
 };
 const itemVariants = {
   hidden: { opacity: 0, x: -20 },
@@ -60,15 +62,29 @@ export default function ManagerWorkspaces() {
     enabled: !!orgId,
   });
 
+
   const { data: imagesData } = useQuery({
     queryKey: ['images'],
     queryFn: () => getImages(),
   });
 
+  // Fetch only users with role 'user' for assignment
   const { data: usersData } = useQuery({
-    queryKey: ['users', orgId],
-    queryFn: () => getUsers(orgId, { limit: 100 }),
+    queryKey: ['users', orgId, 'user'],
+    queryFn: () => getUsers(orgId, { role: 'user', limit: 100 }),
     enabled: !!orgId,
+  });
+
+  // Fetch assignments for the selected workspace (used in assign modal)
+  const { data: assignmentsData } = useQuery({
+    queryKey: ['workspaceAssignments', selectedWorkspaceId],
+    queryFn: async () => {
+      const res = await apiClient.get(
+        `/organizations/${orgId}/workspaces/${selectedWorkspaceId}/assignments`
+      );
+      return res.data.data;  // the array of assignments
+    },
+    enabled: !!selectedWorkspaceId && assignModalOpen,
   });
 
   // --- Mutations ---
@@ -106,8 +122,8 @@ export default function ManagerWorkspaces() {
     mutationFn: ({ workspaceId, userId }) => assignWorkspace(orgId, workspaceId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries(['workspaces']);
+      queryClient.invalidateQueries(['workspaceAssignments', selectedWorkspaceId]);
       toast.success('کاربر به فضای کاری اختصاص یافت');
-      setAssignModalOpen(false);
       setAssignUserId('');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
@@ -117,7 +133,8 @@ export default function ManagerWorkspaces() {
     mutationFn: ({ workspaceId, userId }) => revokeWorkspace(orgId, workspaceId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries(['workspaces']);
-      toast.success('اختصاص کاربر لغو شد');
+      queryClient.invalidateQueries(['workspaceAssignments', selectedWorkspaceId]);
+      toast.success('فضای کار از حساب کاربر حذف شد');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
@@ -171,6 +188,7 @@ export default function ManagerWorkspaces() {
   const workspaces = workspacesData?.data?.data || [];
   const images = imagesData?.data?.data || [];
   const users = usersData?.data?.data || [];
+  const assignments = assignmentsData?.data || []; // from our custom endpoint
 
   return (
     <div>
@@ -185,37 +203,44 @@ export default function ManagerWorkspaces() {
         animate="show"
         className={styles.list}
       >
-        {workspaces.map((ws) => (
-          <motion.div key={ws._id} variants={itemVariants}>
-            <Card className={styles.card}>
-              <div className={styles.info}>
-                <h3>{ws.name}</h3>
-                <p className={styles.sub}>
-                  {ws.imageId?.name || 'بدون تصویر'} | CPU: {ws.resources.cpu} | RAM: {ws.resources.memory}MB | Disk: {ws.resources.disk}GB
-                </p>
-              </div>
-              <div className={styles.actions}>
-                <Button size="sm" variant="secondary" onClick={() => openEditModal(ws)}>
-                  ویرایش
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => openAssignModal(ws._id)}>
-                  تخصیص کاربر
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    if (confirm('آیا از حذف این فضای کاری اطمینان دارید؟')) {
-                      deleteMutation.mutate(ws._id);
-                    }
-                  }}
-                >
-                  حذف
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+        {workspaces.length === 0 ? (
+          <div className={styles.noItem}>
+            <NoItem />
+          </div>
+        ) : (
+          workspaces.map((ws) => (
+            <motion.div key={ws._id} variants={itemVariants}>
+              <Card className={styles.card}>
+                <div className={styles.info}>
+                  <h3>{ws.name}</h3>
+                  <p className={styles.sub}>
+                    {ws.imageId?.name || 'بدون تصویر'} | CPU: {ws.resources.cpu} | RAM:{' '}
+                    {ws.resources.memory}MB | Disk: {ws.resources.disk}GB
+                  </p>
+                </div>
+                <div className={styles.actions}>
+                  <Button size="sm" variant="secondary" onClick={() => openEditModal(ws)}>
+                    ویرایش
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => openAssignModal(ws._id)}>
+                    تخصیص کاربر
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (confirm('آیا از حذف این فضای کاری اطمینان دارید؟')) {
+                        deleteMutation.mutate(ws._id);
+                      }
+                    }}
+                  >
+                    حذف
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))
+        )}
       </motion.div>
 
       {workspacesData?.data?.meta && (
@@ -304,22 +329,47 @@ export default function ManagerWorkspaces() {
       <Modal
         isOpen={assignModalOpen}
         onClose={() => setAssignModalOpen(false)}
-        title="تخصیص کاربر به فضای کاری"
+        title="مدیریت کاربران فضای کاری"
       >
         <div className={styles.form}>
-          <FormField
-            label="کاربر"
-            as="select"
-            value={assignUserId}
-            onChange={(e) => setAssignUserId(e.target.value)}
-            options={users.map((u) => ({ label: `${u.firstName} ${u.lastName} (${u.email})`, value: u._id }))}
+          <h4 className={styles.subTitle}>کاربران اختصاص‌یافته</h4>
+          {!assignmentsData || assignmentsData.length === 0 ? (
+            <p className={styles.noUsers}>هیچ کاربری اختصاص نیافته است.</p>
+          ) : (
+            <div className={styles.assignedList}>
+              {assignmentsData.map((assignment) => (
+                <div key={assignment._id} className={styles.assignedItem}>
+                  <span className={styles.name}>
+                    {assignment.userId?.firstName} {assignment.userId?.lastName}
+                  </span>
+                  <div className={styles.unassign} onClick={() =>
+                    revokeMutation.mutate({
+                      workspaceId: selectedWorkspaceId,
+                      userId: assignment.userId._id,
+                    })
+                  }>
+                    <img src={crossIcon} alt="حذف" title="حذف" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h4 className={styles.subTitle}>افزودن کاربر جدید</h4>
+          <UserSelect
+            orgId={orgId}
+            value={[]}
+            onChange={(userIds) => {
+              userIds.forEach((userId) => {
+                assignMutation.mutate({ workspaceId: selectedWorkspaceId, userId });
+              });
+            }}
+            placeholder="نام کاربر را جستجو کنید (حداقل ۳ حرف)"
           />
+
           <div className={styles.modalActions}>
-            <Button onClick={handleAssign} loading={assignMutation.isLoading}>
-              تخصیص
-            </Button>
             <Button variant="secondary" onClick={() => setAssignModalOpen(false)}>
-              انصراف
+              بستن
             </Button>
           </div>
         </div>

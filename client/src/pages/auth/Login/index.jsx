@@ -32,7 +32,7 @@ export default function Login() {
         }
         setLoading(true);
         try {
-            
+
             const res = await loginApi(form);          // full Axios response
 
             const payload = res.data.data;             // { user, accessToken, refreshToken }
@@ -45,9 +45,14 @@ export default function Login() {
             toast.success('ورود موفقیت‌آمیز');
             if (payload.user.role === 'superadmin') navigate('/admin');
             else if (payload.user.role === 'org_admin') navigate('/manager');
+            else if (payload.user.role === 'manager') navigate('/manager');
             else navigate('/user');
         } catch (err) {
-            toast.error(err.response?.data?.message || 'خطا در ورود');
+            if (err.response?.status >= 500) {
+                toast.error(err.response?.data?.message || 'خطای سرور');
+            } else {
+                toast.error('ورود ناموفق');
+            }
         } finally {
             setLoading(false);
         }

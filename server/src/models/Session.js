@@ -39,7 +39,7 @@ const sessionSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.values(SESSION_STATUS),
-      default: SESSION_STATUS.RUNNING,
+      default: SESSION_STATUS.STARTING,   
     },
     policySnapshot: {
       filePersistence: Boolean,

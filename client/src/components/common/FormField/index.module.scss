@@ -2,11 +2,44 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
 }
+
+.selectWrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+select.input {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-left: 32px;   // make room for the arrow on the right
+  // For RTL use padding-left instead, or keep padding-right if arrow is on the right.
+}
+
+.arrowIcon {
+  position: absolute;
+  left: 12px;               // 12px from the right edge (you can change to 5px as desired)
+  top: 50%;
+  transform: translateY(-50%) rotateX(0deg);
+  transition: transform 0.3s ease;
+  pointer-events: none;      // clicks go through to the select
+  width: 12px;
+  height: 12px;
+}
+
+.selectWrapper:focus-within .arrowIcon {
+  transform: translateY(-50%) rotateX(180deg);
+}
+
 .label {
   font-size: 0.9rem;
   color: var(--text-secondary);
 }
+
 .input {
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -15,14 +48,26 @@
   color: var(--text-primary);
   font-family: inherit;
   transition: border 0.2s;
+
   &:focus {
     outline: none;
     border-color: var(--accent);
   }
+
   &.error {
     border-color: #e74c3c;
   }
 }
+
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-left: 30px;   // room for the arrow on the left (RTL)
+  // For LTR use padding-right: 30px; We'll use padding-inline-start for better RTL support
+  padding-inline-end: 30px;
+}
+
 .errorMsg {
   font-size: 0.75rem;
   color: #e74c3c;

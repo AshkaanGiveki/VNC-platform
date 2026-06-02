@@ -16,6 +16,7 @@ import Loader from '../../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
+import NoItem from '../../../components/common/NoItem';
 
 const defaultOptions = {
   filePersistence: false,
@@ -26,6 +27,7 @@ const defaultOptions = {
   downloadEnabled: false,
   uploadEnabled: true,
   maxSessionDuration: 0,
+  maxConcurrentSessions: 2,
 };
 
 export default function ManagerPolicies() {
@@ -64,19 +66,22 @@ export default function ManagerPolicies() {
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => deleteTemplate(orgId, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['policies']);
-      toast.success('حذف شد');
-    },
-  });
+ const deleteMutation = useMutation({
+  mutationFn: (id) => deleteTemplate(orgId, id),
+  onSuccess: () => {
+    queryClient.invalidateQueries(['policies']);
+    toast.success('قانون حذف شد');
+  },
+  onError: (err) => {
+    toast.error(err.response?.data?.message || 'خطا در حذف قانون');
+  },
+});
 
   const setDefaultMutation = useMutation({
     mutationFn: (id) => setDefaultTemplate(orgId, id),
     onSuccess: () => {
       queryClient.invalidateQueries(['policies']);
-      toast.success('قانون پیش‌فرض تغییر کرد');
+      toast.success('قانون فعال تغییر کرد');
     },
   });
 
@@ -125,43 +130,46 @@ export default function ManagerPolicies() {
         variants={{ show: { transition: { staggerChildren: 0.05 } } }}
         className={styles.list}
       >
-        {data?.data?.data?.map((p) => (
-          <motion.div
-            key={p._id}
-            variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}
-          >
-            <Card className={styles.card}>
-              <div>
-                <h3>
-                  {p.name}
-                  {p.isDefault && <span className={styles.default}> (پیش‌فرض)</span>}
-                </h3>
-                <p>حداکثر زمان: {p.options.maxSessionDuration} دقیقه</p>
-              </div>
-              <div className={styles.actions}>
-                <Button size="sm" variant="secondary" onClick={() => handleEdit(p)}>
-                  ویرایش
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setDefaultMutation.mutate(p._id)}
-                >
-                  پیش‌فرض
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    if (confirm('حذف شود؟')) deleteMutation.mutate(p._id);
-                  }}
-                >
-                  حذف
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+        {data?.data?.data?.length === 0 ?
+          <div className={styles.noItem}>
+            <NoItem />
+          </div> :
+          data?.data?.data?.map((p) => (
+            <motion.div
+              key={p._id}
+              variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}
+            >
+              <Card className={styles.card}>
+                <div>
+                  <h3>
+                    {`${p.name} `}
+                    {p.isDefault && <span className={styles.default}> فعال</span>}
+                  </h3>
+                </div>
+                <div className={styles.actions}>
+                    {!p.isDefault && <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setDefaultMutation.mutate(p._id)}
+                  >
+                    فعال‌سازی
+                  </Button>}
+                  <Button size="sm" variant="secondary" onClick={() => handleEdit(p)}>
+                    ویرایش
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (confirm('حذف شود؟')) deleteMutation.mutate(p._id);
+                    }}
+                  >
+                    حذف
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
       </motion.div>
 
       <Modal
@@ -238,6 +246,18 @@ export default function ManagerPolicies() {
                 options: { ...form.options, maxSessionDuration: Number(e.target.value) },
               })
             }
+          />
+          <FormField
+            label="حداکثر نشست همزمان"
+            type="number"
+            value={form.options.maxConcurrentSessions}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                options: { ...form.options, maxConcurrentSessions: Number(e.target.value) },
+              })
+            }
+            min={1}
           />
           <div className={styles.modalActions}>
             <Button onClick={handleSave} loading={createMutation.isLoading || updateMutation.isLoading}>

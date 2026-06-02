@@ -2,6 +2,10 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    &.noItem{
+        justify-content: center;
+        align-items: center;
+    }
 }
 
 .card {
@@ -51,3 +55,63 @@
     font-size: 0.85rem;
     font-weight: 700;
 }
+
+.starting {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.failed {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.sessionInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sessionImage {
+  width: 40px;
+  height: 40px;
+//   border-radius: 8px;
+  object-fit: cover;
+}
+
+.starting {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.failed {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
