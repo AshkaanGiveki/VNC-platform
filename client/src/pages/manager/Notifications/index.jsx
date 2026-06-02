@@ -1,6 +1,6 @@
 import NotificationsPage from '../../shared/NotificationsPage';
-import { getOrgNotifications } from '../../../services/notificationService';
+import { getNotifications } from '../../../services/notificationService';
 
 export default function ManagerNotifications() {
-  return <NotificationsPage fetchFn={getOrgNotifications} />;
+  return <NotificationsPage fetchFn={getNotifications} />;
 }

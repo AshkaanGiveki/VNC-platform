@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import apiClient from '../../../services/apiClient';
 import Button from '../../../components/common/Button';
@@ -15,6 +15,7 @@ export default function SendNotification() {
     const orgId = user?.organizationId;
     const isSuperadmin = user?.role === 'superadmin';
     const isManager = user?.role === 'manager';
+    const queryClient = useQueryClient();
 
     const [form, setForm] = useState({
         scope: isSuperadmin ? 'platform' : 'organization',
@@ -23,19 +24,37 @@ export default function SendNotification() {
         category: 'info',
     });
 
-    const [selectedUsers, setSelectedUsers] = useState([]);   // full user objects
+    const [selectedUsers, setSelectedUsers] = useState([]);
 
     const mutation = useMutation({
         mutationFn: (data) => apiClient.post('/notifications', data),
         onSuccess: () => {
             toast.success('اعلان ارسال شد');
             setSelectedUsers([]);
+            queryClient.invalidateQueries(['notifications']);
+            queryClient.invalidateQueries(['headerUnreadCount']);
+            queryClient.invalidateQueries(['unreadNotificationsCount']);
         },
-        onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
+        onError: (err) => {
+            const msg =
+                err.response?.data?.message ||
+                (err.response?.data?.errors && err.response.data.errors.join('، ')) ||
+                'خطا در ارسال اعلان';
+            toast.error(msg);
+        },
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Prevent double submission
+        if (mutation.isLoading) return;
+
+        if ((form.scope === 'user' || form.scope === 'admins') && selectedUsers.length === 0) {
+            toast.error('حداقل یک کاربر انتخاب کنید');
+            return;
+        }
+
         const payload = {
             scope: form.scope,
             title: form.title,
@@ -46,7 +65,7 @@ export default function SendNotification() {
         if (form.scope === 'organization') {
             payload.organizationId = orgId;
         } else if (form.scope === 'user' || form.scope === 'admins') {
-            payload.recipientIds = selectedUsers.map(u => u._id);
+            payload.recipientIds = selectedUsers.map((u) => u._id);
             if (form.scope === 'admins' && orgId) {
                 payload.organizationId = orgId;
             }
