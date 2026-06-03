@@ -6,25 +6,34 @@ const redisClient = require('./config/redis');
 const { connectRabbitMQ } = require('./config/rabbitmq');
 const { initConsumers } = require('./events');
 const logger = require('./utils/logger');
+const cookie = require('cookie');
 
-
-const { sessionProxy, sessionCache } = require('./middleware/sessionProxy.middleware');
+const { sessionProxy, sessionCache, upgradeWebSocket } = require('./middleware/sessionProxy.middleware');
 
 const server = http.createServer(app);
 
 server.on('upgrade', (req, socket, head) => {
-  // Match /session/<id>/...  or just /session/<id>
+  logger.info(`[UPGRADE] URL: ${req.url}`);
+
+  let sessionId = null;
   const match = req.url.match(/\/session\/([a-f\d]{24})/);
   if (match) {
-    const sessionId = match[1];
+    sessionId = match[1];
+  }
+  if (!sessionId && req.headers.cookie) {
+    const cookies = cookie.parse(req.headers.cookie);
+    sessionId = cookies.sessionId;
+  }
+
+  if (sessionId) {
     const target = sessionCache.get(sessionId);
     if (target) {
-      req.sessionTarget = target;
-      req.sessionId = sessionId;
+      logger.info(`[UPGRADE] Direct WebSocket to target: ${target}`);
+      upgradeWebSocket(req, socket, head, sessionId, target);
+      return;
     }
   }
-  // Always pass to the proxy – it will use req.sessionTarget if available
-  sessionProxy.upgrade(req, socket, head);
+  socket.destroy();
 });
 
 async function startServer() {
