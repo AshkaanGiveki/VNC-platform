@@ -142,12 +142,14 @@ export default function SendNotification() {
                     {(form.scope === 'user' || form.scope === 'admins') && (
                         <UserSelect
                             orgId={isSuperadmin ? null : orgId}
-                            roles={userRoleFilter}
+                            role={userRoleFilter}
                             includeOrg={isSuperadmin}
                             value={selectedUsers}
-                            onChange={setSelectedUsers}
+                            onChange={(users) => setSelectedUsers(users)}   // users is an array of full objects when multiple=true
                             placeholder={userPlaceholder}
+                            multiple={true}
                         />
+
                     )}
                     <Button type="submit" loading={mutation.isLoading}>ارسال</Button>
                 </form>
