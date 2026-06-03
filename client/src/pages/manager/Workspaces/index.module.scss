@@ -23,8 +23,15 @@
 
 .info {
   flex: 1;
-  h3 { margin-bottom: 4px; }
-  .sub { font-size: 0.85rem; color: var(--text-secondary); }
+
+  h3 {
+    margin-bottom: 4px;
+  }
+
+  .sub {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
 }
 
 .actions {
@@ -63,20 +70,22 @@
   color: var(--text-secondary);
 }
 
-.assignedList{
+.assignedList {
   display: block;
   width: 100%;
   height: max-content;
 }
 
-.assignedItem{
+.assignedItem {
   float: right;
   padding: 4px 6px;
   display: block;
   background-color: var(--text-primary);
   margin-left: 6px;
+  margin-bottom: 3px;
   border-radius: 5px;
-  .name{
+
+  .name {
     font-size: 0.7rem;
     font-weight: 600;
     float: right;
@@ -85,9 +94,9 @@
   }
 
 
-  .unassign{
+  .unassign {
     float: right;
-    width:14px;
+    width: 14px;
     height: 14px;
     border-radius: 2px;
     background-color: #888;
@@ -99,13 +108,43 @@
     cursor: pointer;
     transition: opacity ease-in-out 300ms;
 
-    >img{
-      width:8px;
+    >img {
+      width: 8px;
       height: 8px;
-      filter: invert(1);  
+      filter: invert(1);
     }
-    &:hover{
+
+    &:hover {
       opacity: 1;
     }
   }
+}
+
+.showAllButton {
+  float: right;
+  padding: 4px 6px;
+  display: block;
+  height: 24px;
+  background-color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 3px;
+  margin-bottom: 3px;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+
+  >img {
+    float: right;
+    height: 16px;
+    width: 16px;
+    margin: 0px 10px 0px 10px;
+    filter: invert(1);
+  }
+}
+
+.modalList {
+  display: block;
+  max-height: 60vh;
+  overflow-y: auto;
 }

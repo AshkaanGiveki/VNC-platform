@@ -17,15 +17,15 @@ import FormField from '../../../components/common/FormField';
 import Modal from '../../../components/common/Modal';
 import Pagination from '../../../components/common/Pagination';
 import Loader from '../../../components/common/Loader';
+import UserSelect from '../../../components/common/UserSelect';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
 import NoItem from '../../../components/common/NoItem';
 import apiClient from '../../../services/apiClient';
-import UserSelect from '../../../components/common/UserSelect';
-import crossIcon from '../../../assets/icons/cancel.png'
+import crossIcon from '../../../assets/icons/cancel.png';
 
-// Stagger animation variants
+
 const containerVariants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.05 } },
@@ -39,15 +39,11 @@ export default function ManagerWorkspaces() {
   const { user } = useSelector((state) => state.auth);
   const orgId = user?.organizationId;
   const queryClient = useQueryClient();
-
-  // Pagination & modals
+  const [showAllOpen, setShowAllOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
-  const [assignUserId, setAssignUserId] = useState('');
-
-  // Form state for create/edit
   const [editingWs, setEditingWs] = useState(null);
   const [form, setForm] = useState({
     name: '',
@@ -55,39 +51,36 @@ export default function ManagerWorkspaces() {
     resources: { cpu: 1, memory: 1024, disk: 10 },
   });
 
-  // --- Data Fetching ---
+  // ----- data fetching -----
   const { data: workspacesData, isLoading } = useQuery({
     queryKey: ['workspaces', orgId, page],
     queryFn: () => getWorkspaces(orgId, { page, limit: 10 }),
     enabled: !!orgId,
   });
 
-
   const { data: imagesData } = useQuery({
     queryKey: ['images'],
     queryFn: () => getImages(),
   });
 
-  // Fetch only users with role 'user' for assignment
   const { data: usersData } = useQuery({
     queryKey: ['users', orgId, 'user'],
     queryFn: () => getUsers(orgId, { role: 'user', limit: 100 }),
     enabled: !!orgId,
   });
 
-  // Fetch assignments for the selected workspace (used in assign modal)
   const { data: assignmentsData } = useQuery({
     queryKey: ['workspaceAssignments', selectedWorkspaceId],
     queryFn: async () => {
       const res = await apiClient.get(
         `/organizations/${orgId}/workspaces/${selectedWorkspaceId}/assignments`
       );
-      return res.data.data;  // the array of assignments
+      return res.data.data;
     },
     enabled: !!selectedWorkspaceId && assignModalOpen,
   });
 
-  // --- Mutations ---
+  // ----- mutations -----
   const createMutation = useMutation({
     mutationFn: (data) => createWorkspace(orgId, data),
     onSuccess: () => {
@@ -121,25 +114,18 @@ export default function ManagerWorkspaces() {
   const assignMutation = useMutation({
     mutationFn: ({ workspaceId, userId }) => assignWorkspace(orgId, workspaceId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['workspaces']);
-      queryClient.invalidateQueries(['workspaceAssignments', selectedWorkspaceId]);
-      toast.success('کاربر به فضای کاری اختصاص یافت');
-      setAssignUserId('');
+      queryClient.invalidateQueries(['workspaceAssignments']);
+      toast.success('کاربر اختصاص یافت');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
 
   const revokeMutation = useMutation({
     mutationFn: ({ workspaceId, userId }) => revokeWorkspace(orgId, workspaceId, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['workspaces']);
-      queryClient.invalidateQueries(['workspaceAssignments', selectedWorkspaceId]);
-      toast.success('فضای کار از حساب کاربر حذف شد');
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
+    onSuccess: () => queryClient.invalidateQueries(['workspaceAssignments']),
   });
 
-  // --- Handlers ---
+  // ----- handlers -----
   const openCreateModal = () => {
     setEditingWs(null);
     setForm({ name: '', imageId: '', resources: { cpu: 1, memory: 1024, disk: 10 } });
@@ -170,25 +156,40 @@ export default function ManagerWorkspaces() {
 
   const openAssignModal = (workspaceId) => {
     setSelectedWorkspaceId(workspaceId);
-    setAssignUserId('');
     setAssignModalOpen(true);
   };
 
-  const handleAssign = () => {
-    if (!assignUserId) {
-      toast.error('یک کاربر انتخاب کنید');
+  const validAssignments = (assignmentsData || []).filter((a) => a.userId);
+
+  const assignAllUsers = async () => {
+    const allUsers = usersData?.data?.data || [];
+    const assignedIds = validAssignments.map((a) => a.userId?._id);
+    const unassigned = allUsers.filter((u) => !assignedIds.includes(u._id));
+    if (unassigned.length === 0) {
+      toast.error('همه کاربران قبلاً اختصاص یافته‌اند');
       return;
     }
-    assignMutation.mutate({ workspaceId: selectedWorkspaceId, userId: assignUserId });
+    let count = 0;
+    for (const u of unassigned) {
+      try {
+        await assignMutation.mutateAsync({ workspaceId: selectedWorkspaceId, userId: u._id });
+        count++;
+      } catch (err) {
+        toast.error(`خطا برای کاربر ${u.firstName} ${u.lastName}`);
+      }
+    }
+    if (count > 0) {
+      toast.success(`${count} کاربر اختصاص یافت`);
+    }
   };
 
-  // --- Render ---
+  // ----- render -----
   if (isLoading) return <Loader fullScreen />;
 
   const workspaces = workspacesData?.data?.data || [];
   const images = imagesData?.data?.data || [];
-  const users = usersData?.data?.data || [];
-  const assignments = assignmentsData?.data || []; // from our custom endpoint
+
+  const displayedUsers = validAssignments.length > 6 ? validAssignments.slice(0, 6) : validAssignments;
 
   return (
     <div>
@@ -197,16 +198,9 @@ export default function ManagerWorkspaces() {
         <Button onClick={openCreateModal}>افزودن فضای کاری</Button>
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className={styles.list}
-      >
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className={styles.list}>
         {workspaces.length === 0 ? (
-          <div className={styles.noItem}>
-            <NoItem />
-          </div>
+          <div className={styles.noItem}><NoItem /></div>
         ) : (
           workspaces.map((ws) => (
             <motion.div key={ws._id} variants={itemVariants}>
@@ -219,23 +213,9 @@ export default function ManagerWorkspaces() {
                   </p>
                 </div>
                 <div className={styles.actions}>
-                  <Button size="sm" variant="secondary" onClick={() => openEditModal(ws)}>
-                    ویرایش
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => openAssignModal(ws._id)}>
-                    تخصیص کاربر
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      if (confirm('آیا از حذف این فضای کاری اطمینان دارید؟')) {
-                        deleteMutation.mutate(ws._id);
-                      }
-                    }}
-                  >
-                    حذف
-                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => openEditModal(ws)}>ویرایش</Button>
+                  <Button size="sm" variant="secondary" onClick={() => openAssignModal(ws._id)}>تخصیص کاربر</Button>
+                  <Button size="sm" variant="secondary" onClick={() => { if (confirm('حذف شود؟')) deleteMutation.mutate(ws._id); }}>حذف</Button>
                 </div>
               </Card>
             </motion.div>
@@ -244,26 +224,13 @@ export default function ManagerWorkspaces() {
       </motion.div>
 
       {workspacesData?.data?.meta && (
-        <Pagination
-          page={page}
-          totalPages={workspacesData.data.meta.totalPages}
-          onPageChange={setPage}
-        />
+        <Pagination page={page} totalPages={workspacesData.data.meta.totalPages} onPageChange={setPage} />
       )}
 
-      {/* Create/Edit Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingWs ? 'ویرایش فضای کاری' : 'فضای کاری جدید'}
-      >
+      {/* create / edit modal */}
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingWs ? 'ویرایش فضای کاری' : 'فضای کاری جدید'}>
         <div className={styles.form}>
-          <FormField
-            label="نام"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
+          <FormField label="نام" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <FormField
             label="تصویر"
             as="select"
@@ -273,71 +240,26 @@ export default function ManagerWorkspaces() {
             required
           />
           <div className={styles.resourcesGrid}>
-            <FormField
-              label="CPU"
-              type="number"
-              value={form.resources.cpu}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  resources: { ...form.resources, cpu: Number(e.target.value) },
-                })
-              }
-              min={0.1}
-              step={0.1}
-            />
-            <FormField
-              label="RAM (MB)"
-              type="number"
-              value={form.resources.memory}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  resources: { ...form.resources, memory: Number(e.target.value) },
-                })
-              }
-              min={128}
-            />
-            <FormField
-              label="Disk (GB)"
-              type="number"
-              value={form.resources.disk}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  resources: { ...form.resources, disk: Number(e.target.value) },
-                })
-              }
-              min={1}
-            />
+            <FormField label="CPU" type="number" value={form.resources.cpu} onChange={(e) => setForm({ ...form, resources: { ...form.resources, cpu: Number(e.target.value) } })} min={0.1} step={0.1} />
+            <FormField label="RAM (MB)" type="number" value={form.resources.memory} onChange={(e) => setForm({ ...form, resources: { ...form.resources, memory: Number(e.target.value) } })} min={128} />
+            <FormField label="Disk (GB)" type="number" value={form.resources.disk} onChange={(e) => setForm({ ...form, resources: { ...form.resources, disk: Number(e.target.value) } })} min={1} />
           </div>
           <div className={styles.modalActions}>
-            <Button
-              onClick={handleSave}
-              loading={createMutation.isLoading || updateMutation.isLoading}
-            >
-              {editingWs ? 'به‌روزرسانی' : 'ایجاد'}
-            </Button>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>
-              انصراف
-            </Button>
+            <Button onClick={handleSave} loading={createMutation.isLoading || updateMutation.isLoading}>{editingWs ? 'به‌روزرسانی' : 'ایجاد'}</Button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>انصراف</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Assign User Modal */}
-      <Modal
-        isOpen={assignModalOpen}
-        onClose={() => setAssignModalOpen(false)}
-        title="مدیریت کاربران فضای کاری"
-      >
+      {/* assign modal */}
+      <Modal isOpen={assignModalOpen} onClose={() => setAssignModalOpen(false)} title="مدیریت کاربران فضای کاری">
         <div className={styles.form}>
           <h4 className={styles.subTitle}>کاربران اختصاص‌یافته</h4>
-          {!assignmentsData || assignmentsData.length === 0 ? (
+          {validAssignments.length === 0 ? (
             <p className={styles.noUsers}>هیچ کاربری اختصاص نیافته است.</p>
           ) : (
             <div className={styles.assignedList}>
-              {assignmentsData.map((assignment) => (
+              {displayedUsers.map((assignment) => (
                 <div key={assignment._id} className={styles.assignedItem}>
                   <span className={styles.name}>
                     {assignment.userId?.firstName} {assignment.userId?.lastName}
@@ -352,26 +274,59 @@ export default function ManagerWorkspaces() {
                   </div>
                 </div>
               ))}
+              {validAssignments.length > 6 && (
+                <div
+                  className={styles.showAllButton}
+                  onClick={() => setShowAllOpen(true)}
+                >
+                  مشاهده تمامی افراد انتخاب شده ({validAssignments.length})
+                </div>
+              )}
             </div>
           )}
 
-          <h4 className={styles.subTitle}>افزودن کاربر جدید</h4>
+          <h4 className={styles.subTitle}>افزودن کاربر</h4>
           <UserSelect
             orgId={orgId}
+            role="user"
             value={[]}
-            onChange={(userIds) => {
-              userIds.forEach((userId) => {
-                assignMutation.mutate({ workspaceId: selectedWorkspaceId, userId });
-              });
+            onChange={(userId) => {
+              if (userId) assignMutation.mutate({ workspaceId: selectedWorkspaceId, userId });
             }}
             placeholder="نام کاربر را جستجو کنید (حداقل ۳ حرف)"
+            multiple={false}
           />
 
+          <Button variant="secondary" onClick={assignAllUsers} loading={assignMutation.isLoading}>
+            اختصاص به همه کاربران
+          </Button>
+
           <div className={styles.modalActions}>
-            <Button variant="secondary" onClick={() => setAssignModalOpen(false)}>
-              بستن
-            </Button>
+            <Button variant="secondary" onClick={() => setAssignModalOpen(false)}>بستن</Button>
           </div>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={showAllOpen}
+        onClose={() => setShowAllOpen(false)}
+        title="افراد انتخاب شده"
+      >
+        <div className={styles.modalList}>
+          {validAssignments.map(u => (
+            <div key={u._id} className={styles.assignedItem}>
+              <span className={styles.name}>
+                {u.userId?.firstName} {u.userId?.lastName}
+              </span>
+              <div className={styles.unassign} onClick={() =>
+                    revokeMutation.mutate({
+                      workspaceId: selectedWorkspaceId,
+                      userId: u.userId._id,
+                    })
+                  }>
+                <img src={crossIcon} alt="حذف" title="حذف" />
+              </div>
+            </div>
+          ))}
         </div>
       </Modal>
     </div>
