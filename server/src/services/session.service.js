@@ -15,6 +15,8 @@ const { createNotification } = require('./notification.service');
 const { resolvePolicy } = require('./policyEngine.service');
 const containerService = require('./container.service');
 const logger = require('../utils/logger');
+const config = require('../config');
+const path = require('path');
 
 /**
  * Start a new session for a user's workspace.
@@ -72,6 +74,7 @@ async function startSession({ user, workspaceId, ip }) {
   const policy = await resolvePolicy(workspace);
 
   // 6. Create session document with status 'starting'
+  // 6. Create session document with status 'starting'
   const session = await Session.create({
     userId: user.userId,
     workspaceId: workspace._id,
@@ -86,7 +89,10 @@ async function startSession({ user, workspaceId, ip }) {
     lastActivityAt: new Date(),
   });
 
-  // 7. Launch container (may take some time)
+  // Build volume path for persistent home directory
+  const sessionStoragePath = config.env.sessionStoragePath || path.join(__dirname, '../../sessions');
+  const sessionHomePath = path.join(sessionStoragePath, user.userId, workspace._id.toString());
+
   try {
     const container = await containerService.launchContainer({
       image,
@@ -95,17 +101,16 @@ async function startSession({ user, workspaceId, ip }) {
       user: { _id: user.userId },
       workspaceId: workspace._id,
       sessionId: session._id.toString(),
+      volumePath: policy.filePersistence ? sessionHomePath : null,   // ← home mount
     });
 
-    // Update session with container details and set status to running
     session.containerId = container.containerId;
     session.accessUrl = container.url;
     session.websocketUrl = container.websocketUrl || null;
     session.status = SESSION_STATUS.RUNNING;
     await session.save();
 
-    // Log and notify
-    await logAction({
+     await logAction({
       action: 'session.started',
       resource: 'session',
       resourceId: session._id,
@@ -120,43 +125,42 @@ async function startSession({ user, workspaceId, ip }) {
       recipientIds: [user.userId],
       category: 'info',
       title: 'آغاز نشست',
-      body: `نشست ${workspace.name} شما راه‌اندازی شد.`,
-      body: (policy.maxSessionDuration > 0
-        ? `نشست ${workspace.name} شما راه‌اندازی شد. این نشست به طور خودکار پس از ${policy.maxSessionDuration} دقیقه پایان خواهد یافت.`
-        : `نشست ${workspace.name} شما راه‌اندازی شد.`),
-    organizationId: user.organizationId,
+      body: policy.maxSessionDuration > 0
+        ? `نشست ${workspace.name} شما راه‌اندازی شد. این نشست به‌طور خودکار پس از ${policy.maxSessionDuration} دقیقه پایان خواهد یافت.`
+        : `نشست ${workspace.name} شما راه‌اندازی شد.`,
+      organizationId: user.organizationId,
     });
 
-  // If maxSessionDuration is set, schedule an auto-stop job
-  if (policy.maxSessionDuration > 0) {
-    const { getQueue } = require('../jobs/queues/sessionQueue');
-    const queue = getQueue();
-    await queue.add(
-      'autoStopSession',
-      { sessionId: session._id.toString() },
-      { delay: policy.maxSessionDuration * 60 * 1000 }
-    );
+    // If maxSessionDuration is set, schedule an auto-stop job
+    if (policy.maxSessionDuration > 0) {
+      const { getQueue } = require('../jobs/queues/sessionQueue');
+      const queue = getQueue();
+      await queue.add(
+        'autoStopSession',
+        { sessionId: session._id.toString() },
+        { delay: policy.maxSessionDuration * 60 * 1000 }
+      );
+    }
+
+    logger.info(`Session ${session._id} started for user ${user.userId}`);
+    return session;
+  } catch (err) {
+    // Container launch failed – mark session as failed
+    session.status = SESSION_STATUS.FAILED;
+    await session.save();
+
+    await logAction({
+      action: 'session.failed',
+      resource: 'session',
+      resourceId: session._id,
+      userId: user.userId,
+      organizationId: user.organizationId,
+      ip,
+      details: { error: err.message },
+    });
+
+    throw err; // rethrow to let controller handle it
   }
-
-  logger.info(`Session ${session._id} started for user ${user.userId}`);
-  return session;
-} catch (err) {
-  // Container launch failed – mark session as failed
-  session.status = SESSION_STATUS.FAILED;
-  await session.save();
-
-  await logAction({
-    action: 'session.failed',
-    resource: 'session',
-    resourceId: session._id,
-    userId: user.userId,
-    organizationId: user.organizationId,
-    ip,
-    details: { error: err.message },
-  });
-
-  throw err; // rethrow to let controller handle it
-}
 }
 
 /**

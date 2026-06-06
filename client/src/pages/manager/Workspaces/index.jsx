@@ -136,37 +136,48 @@ export default function ManagerWorkspaces() {
   // ----- handlers -----
   const openCreateModal = () => {
     setEditingWs(null);
-    setForm({ name: '', imageId: '', resources: { cpu: 1, memory: 1024, disk: 10 } });
+    // Find the organization's default policy template (if any)
+    const templates = policiesData?.data?.data || [];
+    const defaultTemplate = templates.find(p => p.isDefault);
+    setForm({
+      name: '',
+      imageId: '',
+      policyId: defaultTemplate ? defaultTemplate._id : '',   // auto‑select default
+      resources: { cpu: 1, memory: 1024, disk: 10 },
+    });
     setModalOpen(true);
   };
 
   const openEditModal = (ws) => {
     setEditingWs(ws);
+    // Extract the current policy template ID (handles populated and raw ObjectId)
+    const currentPolicyId = ws.policy?.templateId?._id || ws.policy?.templateId || '';
     setForm({
       name: ws.name,
       imageId: ws.imageId?._id || ws.imageId,
+      policyId: currentPolicyId,
       resources: { ...ws.resources },
     });
     setModalOpen(true);
   };
 
   const handleSave = () => {
-  if (!form.name.trim() || !form.imageId) {
-    toast.error('نام و تصویر الزامی هستند');
-    return;
-  }
-  const data = {
-    name: form.name,
-    imageId: form.imageId,
-    policyId: form.policyId || undefined,   // send undefined if empty (use org default)
-    resources: form.resources,
+    if (!form.name.trim() || !form.imageId) {
+      toast.error('نام و تصویر الزامی هستند');
+      return;
+    }
+    const data = {
+      name: form.name,
+      imageId: form.imageId,
+      policyId: form.policyId || undefined,   // send undefined if empty (use org default)
+      resources: form.resources,
+    };
+    if (editingWs) {
+      updateMutation.mutate({ id: editingWs._id, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
-  if (editingWs) {
-    updateMutation.mutate({ id: editingWs._id, data });
-  } else {
-    createMutation.mutate(data);
-  }
-};
 
   const openAssignModal = (workspaceId) => {
     setSelectedWorkspaceId(workspaceId);
@@ -254,17 +265,15 @@ export default function ManagerWorkspaces() {
             required
           />
           <FormField
-            label="قانون (Policy)"
+            label="قانون"
             as="select"
             value={form.policyId}
             onChange={(e) => setForm({ ...form, policyId: e.target.value })}
-            options={[
-              { label: 'پیش‌فرض سازمان', value: '' },
-              ...(policiesData?.data?.data || []).map(p => ({
-                label: p.name + (p.isDefault ? ' (پیش‌فرض)' : ''),
-                value: p._id,
-              })),
-            ]}
+            options={(policiesData?.data?.data || []).map(p => ({
+              label: p.name + (p.isDefault ? ' (پیش‌فرض)' : ''),
+              value: p._id,
+            }))}
+             showDefaultOption={false}
           />
           <div className={styles.resourcesGrid}>
             <FormField label="CPU" type="number" value={form.resources.cpu} onChange={(e) => setForm({ ...form, resources: { ...form.resources, cpu: Number(e.target.value) } })} min={0.1} step={0.1} />

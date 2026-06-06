@@ -69,10 +69,10 @@ const env = {
     port: parseInt(process.env.STORAGE_PORT, 10) || 4410,
     accessKey: process.env.STORAGE_ACCESS_KEY,
     secretKey: process.env.STORAGE_SECRET_KEY,
-    sessionStoragePath: process.env.SESSION_STORAGE_PATH || path.join(__dirname, '../../sessions'),
     bucket: process.env.STORAGE_BUCKET,
     useSSL: process.env.STORAGE_USE_SSL === 'true',
   },
+  sessionStoragePath: process.env.SESSION_STORAGE_PATH || path.join(__dirname, '../../sessions'),
 
   containerProvider: process.env.CONTAINER_PROVIDER || 'kasm',
   kasm: {

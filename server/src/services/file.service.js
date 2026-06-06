@@ -7,9 +7,9 @@ const { NotFoundError, AuthorizationError, AppError } = require('../utils/errors
 const { uploadFile, getDownloadUrl, deleteFile } = require('../config/storage');
 const { logAction } = require('./log.service');
 const { isAllowed } = require('./policyEngine.service');
-const logger = require('../utils/logger');
+const config = require('../config');
 
-const SESSION_VOLUME_BASE = '/data/sessions';
+const SESSION_VOLUME_BASE = path.resolve(config.env.sessionStoragePath);
 
 async function uploadToSession({ user, sessionId, file, ip }) {
   const session = await Session.findOne({
@@ -37,12 +37,14 @@ async function uploadToSession({ user, sessionId, file, ip }) {
   }
 
   // Write to container's Uploads folder via host mount
-  const uploadsHostPath = path.join(
-    SESSION_VOLUME_BASE,
-    user.userId,
-    session.workspaceId.toString(),
-    'Uploads'
-  );
+  // const uploadsHostPath = path.join(
+  //   SESSION_VOLUME_BASE,
+  //   user.userId,
+  //   session.workspaceId.toString(),
+  //   'Uploads'
+  // );
+
+  const uploadsHostPath = path.join(SESSION_VOLUME_BASE, user.userId, session.workspaceId.toString(), 'Desktop', 'Uploads');
 
   logger.info(`[UPLOAD] Writing file to host path: ${uploadsHostPath}`);
   logger.info(`[UPLOAD] File original name: ${file.originalname}, size: ${file.size}`);
@@ -86,12 +88,14 @@ async function listDownloads({ user, sessionId }) {
   const session = await Session.findOne({ _id: sessionId, userId: user.userId });
   if (!session) throw new NotFoundError('Session not found');
 
-  const downloadsHostPath = path.join(
-    SESSION_VOLUME_BASE,
-    user.userId,
-    session.workspaceId.toString(),
-    'Downloads'
-  );
+  // const downloadsHostPath = path.join(
+  //   SESSION_VOLUME_BASE,
+  //   user.userId,
+  //   session.workspaceId.toString(),
+  //   'Downloads'
+  // );
+
+  const downloadsHostPath = path.join(SESSION_VOLUME_BASE, user.userId, session.workspaceId.toString(), 'Desktop', 'Downloads');
 
   logger.info(`[DOWNLOADS] Listing files from host path: ${downloadsHostPath}`);
 
@@ -122,12 +126,15 @@ async function downloadFromContainer({ user, sessionId, fileName }) {
     throw new AuthorizationError('File download is disabled by workspace policy');
   }
 
-  const downloadsHostPath = path.join(
-    SESSION_VOLUME_BASE,
-    user.userId,
-    session.workspaceId.toString(),
-    'Downloads'
-  );
+  // const downloadsHostPath = path.join(
+  //   SESSION_VOLUME_BASE,
+  //   user.userId,
+  //   session.workspaceId.toString(),
+  //   'Downloads'
+  // );
+
+  const downloadsHostPath = path.join(SESSION_VOLUME_BASE, user.userId, session.workspaceId.toString(), 'Desktop', 'Downloads');
+
   const filePath = path.join(downloadsHostPath, fileName);
   if (!fs.existsSync(filePath)) throw new NotFoundError('File not found');
   return filePath;
