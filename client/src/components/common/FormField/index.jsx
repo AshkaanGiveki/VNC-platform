@@ -9,6 +9,7 @@ export default function FormField({
   className,
   as,
   options,
+  showDefaultOption = true, 
   ...props
 }) {
   const inputProps = {
@@ -23,7 +24,7 @@ export default function FormField({
       {as === 'select' ? (
         <div className={styles.selectWrapper}>
           <select {...inputProps}>
-            <option value="">-- انتخاب کنید --</option>
+            {showDefaultOption && <option value="">-- انتخاب کنید --</option>}
             {options?.map((opt) => {
               if (typeof opt === 'string') {
                 return (

@@ -78,7 +78,6 @@ export default function UserWorkspaces() {
                         <NoItem />
                     </div> :
                     data?.data?.data?.map((ws) => {
-                        console.log(ws);
                         const isStarting = startingWorkspace === ws._id;
                         const imageUrl =
                             ws.imageId?.iconUrl || '/assets/images/default-workspace.png';

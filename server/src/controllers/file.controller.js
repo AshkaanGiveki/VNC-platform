@@ -36,14 +36,27 @@ const listFiles = async (req, res, next) => {
   }
 };
 
+// const downloadFile = async (req, res, next) => {
+//   try {
+//     const url = await fileService.downloadFile({
+//       fileId: req.params.fileId,
+//       user: req.user,
+//       sessionId: req.params.sessionId,
+//     });
+//     // Redirect to pre-signed URL
+//     return res.redirect(url);
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 const downloadFile = async (req, res, next) => {
   try {
-    const url = await fileService.downloadFile({
+    const url = await fileService.downloadUploadedFile({
       fileId: req.params.fileId,
       user: req.user,
       sessionId: req.params.sessionId,
     });
-    // Redirect to pre-signed URL
     return res.redirect(url);
   } catch (err) {
     next(err);
@@ -63,4 +76,42 @@ const deleteFile = async (req, res, next) => {
   }
 };
 
-module.exports = { uploadFile, listFiles, downloadFile, deleteFile };
+const listDownloads = async (req, res, next) => {
+  try {
+    const files = await fileService.listDownloads({
+      user: req.user,
+      sessionId: req.params.sessionId,
+    });
+    return success(res, files);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const downloadContainerFile = async (req, res, next) => {
+  try {
+    const filePath = await fileService.downloadFromContainer({
+      user: req.user,
+      sessionId: req.params.sessionId,
+      fileName: req.params.fileName,
+    });
+    res.download(filePath);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const listUploads = async (req, res, next) => {
+  try {
+    const { files, meta } = await fileService.listSessionFiles({
+      sessionId: req.params.sessionId,
+      user: req.user,
+      queryParams: req.query,
+    });
+    return paginated(res, files, meta);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { uploadFile, listFiles, downloadFile, deleteFile, listDownloads, downloadContainerFile, listUploads};

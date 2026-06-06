@@ -1,28 +1,17 @@
-/**
- * File service – handles file uploads and downloads within active sessions.
- * Respects workspace/session policies and stores files in object storage.
- * @module services/file.service
- */
 const SessionFile = require('../models/SessionFile');
 const Session = require('../models/Session');
+const fs = require('fs');
+const path = require('path');
 const { SESSION_STATUS } = require('../utils/constants');
-const { NotFoundError, AuthorizationError, ValidationError, AppError } = require('../utils/errors');
+const { NotFoundError, AuthorizationError, AppError } = require('../utils/errors');
 const { uploadFile, getDownloadUrl, deleteFile } = require('../config/storage');
 const { logAction } = require('./log.service');
 const { isAllowed } = require('./policyEngine.service');
-const logger = require('../utils/logger');
+const config = require('../config');
 
-/**
- * Upload a file to a session.
- * @param {object} params
- * @param {object} params.user          - Authenticated user (req.user)
- * @param {string} params.sessionId
- * @param {object} params.file          - Multer file object { originalname, buffer, mimetype, size }
- * @param {string} [params.ip]
- * @returns {Promise<object>} Created SessionFile document.
- */
+const SESSION_VOLUME_BASE = path.resolve(config.env.sessionStoragePath);
+
 async function uploadToSession({ user, sessionId, file, ip }) {
-  // 1. Find session and validate ownership/status
   const session = await Session.findOne({
     _id: sessionId,
     userId: user.userId,
@@ -30,37 +19,58 @@ async function uploadToSession({ user, sessionId, file, ip }) {
   });
   if (!session) throw new NotFoundError('Active session not found');
 
-  // 2. Check policy – is upload enabled?
   if (!isAllowed(session.policySnapshot, 'uploadEnabled')) {
     throw new AuthorizationError('File upload is disabled by workspace policy');
   }
 
-  // 3. Build storage key: sessions/<sessionId>/<userId>/<timestamp>-<filename>
+  // Save to MinIO
   const timestamp = Date.now();
-  const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const key = `sessions/${sessionId}/${user.userId}/${timestamp}-${sanitizedFileName}`;
+  const sanitized = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const storageKey = `sessions/${sessionId}/${user.userId}/${timestamp}-${sanitized}`;
 
-  // 4. Upload stream to object storage
   try {
-    await uploadFile(file.buffer, key, file.mimetype);
-    logger.info(`File uploaded to storage: ${key}`);
+    await uploadFile(file.buffer, storageKey, file.mimetype);
+    logger.info(`File uploaded to MinIO: ${storageKey}`);
   } catch (err) {
-    logger.error(`File upload failed: ${err.message}`);
+    logger.error(`MinIO upload error: ${err.message}`);
     throw new AppError('File upload failed', 500);
   }
 
-  // 5. Save metadata
+  // Write to container's Uploads folder via host mount
+  // const uploadsHostPath = path.join(
+  //   SESSION_VOLUME_BASE,
+  //   user.userId,
+  //   session.workspaceId.toString(),
+  //   'Uploads'
+  // );
+
+  const uploadsHostPath = path.join(SESSION_VOLUME_BASE, user.userId, session.workspaceId.toString(), 'Desktop', 'Uploads');
+
+  logger.info(`[UPLOAD] Writing file to host path: ${uploadsHostPath}`);
+  logger.info(`[UPLOAD] File original name: ${file.originalname}, size: ${file.size}`);
+
+  try {
+    // Ensure directory exists
+    fs.mkdirSync(uploadsHostPath, { recursive: true });
+    const filePath = path.join(uploadsHostPath, sanitized);
+    fs.writeFileSync(filePath, file.buffer);
+    logger.info(`[UPLOAD] File written successfully to: ${filePath}`);
+  } catch (err) {
+    logger.error(`[UPLOAD] Writing to Uploads folder failed: ${err.message}`);
+    throw new AppError('File upload failed – cannot write to container folder', 500);
+  }
+
+  // Save metadata
   const sessionFile = await SessionFile.create({
     sessionId,
     userId: user.userId,
     fileName: file.originalname,
     fileSize: file.size,
     mimeType: file.mimetype,
-    storagePath: key,
+    storagePath: storageKey,
     direction: 'upload',
   });
 
-  // 6. Log
   await logAction({
     action: 'file.uploaded',
     resource: 'sessionFile',
@@ -74,23 +84,69 @@ async function uploadToSession({ user, sessionId, file, ip }) {
   return sessionFile;
 }
 
-/**
- * List files uploaded/downloaded in a session.
- * @param {object} params
- * @param {string} params.sessionId
- * @param {object} params.user
- * @param {object} [params.queryParams]
- * @returns {Promise<Array>}
- */
+async function listDownloads({ user, sessionId }) {
+  const session = await Session.findOne({ _id: sessionId, userId: user.userId });
+  if (!session) throw new NotFoundError('Session not found');
+
+  // const downloadsHostPath = path.join(
+  //   SESSION_VOLUME_BASE,
+  //   user.userId,
+  //   session.workspaceId.toString(),
+  //   'Downloads'
+  // );
+
+  const downloadsHostPath = path.join(SESSION_VOLUME_BASE, user.userId, session.workspaceId.toString(), 'Desktop', 'Downloads');
+
+  logger.info(`[DOWNLOADS] Listing files from host path: ${downloadsHostPath}`);
+
+  try {
+    if (!fs.existsSync(downloadsHostPath)) {
+      logger.warn(`[DOWNLOADS] Path does not exist: ${downloadsHostPath}`);
+      return [];
+    }
+    const files = fs.readdirSync(downloadsHostPath);
+    logger.info(`[DOWNLOADS] Found ${files.length} files`);
+
+    return files.map((name) => {
+      const fullPath = path.join(downloadsHostPath, name);
+      const stats = fs.statSync(fullPath);
+      return { name, size: stats.size, modifiedAt: stats.mtime };
+    });
+  } catch (err) {
+    logger.error(`[DOWNLOADS] Error listing files: ${err.message}`);
+    return [];
+  }
+}
+
+async function downloadFromContainer({ user, sessionId, fileName }) {
+  const session = await Session.findOne({ _id: sessionId, userId: user.userId });
+  if (!session) throw new NotFoundError('Session not found');
+
+  if (!isAllowed(session.policySnapshot, 'downloadEnabled')) {
+    throw new AuthorizationError('File download is disabled by workspace policy');
+  }
+
+  // const downloadsHostPath = path.join(
+  //   SESSION_VOLUME_BASE,
+  //   user.userId,
+  //   session.workspaceId.toString(),
+  //   'Downloads'
+  // );
+
+  const downloadsHostPath = path.join(SESSION_VOLUME_BASE, user.userId, session.workspaceId.toString(), 'Desktop', 'Downloads');
+
+  const filePath = path.join(downloadsHostPath, fileName);
+  if (!fs.existsSync(filePath)) throw new NotFoundError('File not found');
+  return filePath;
+}
+
 async function listSessionFiles({ sessionId, user, queryParams }) {
-  // Ensure user is part of the session
   const session = await Session.findOne({ _id: sessionId, userId: user.userId });
   if (!session) throw new NotFoundError('Session not found');
 
   const { parsePagination, applyPagination, buildMeta } = require('../utils/pagination');
   const pagination = parsePagination(queryParams);
-  const filter = { sessionId };
-  if (queryParams.direction) filter.direction = queryParams.direction;
+  const filter = { sessionId, direction: 'upload' };
 
   const [files, total] = await Promise.all([
     applyPagination(SessionFile.find(filter).sort({ createdAt: -1 }), pagination).lean(),
@@ -100,31 +156,18 @@ async function listSessionFiles({ sessionId, user, queryParams }) {
   return { files, meta: buildMeta(total, pagination) };
 }
 
-/**
- * Get a pre‑signed download URL for a session file.
- * @param {object} params
- * @param {string} params.fileId
- * @param {object} params.user
- * @param {string} params.sessionId
- * @returns {Promise<string>} Download URL.
- */
-async function downloadFile({ fileId, user, sessionId }) {
+async function downloadUploadedFile({ fileId, user, sessionId }) {
   const sessionFile = await SessionFile.findOne({ _id: fileId, sessionId });
   if (!sessionFile) throw new NotFoundError('File not found');
 
-  // Ensure user is part of the session
   const session = await Session.findOne({ _id: sessionId, userId: user.userId });
-  if (!session) throw new AuthorizationError('You do not have access to this session');
+  if (!session) throw new AuthorizationError('Not authorized');
 
-  // Check policy – is download enabled?
   if (!isAllowed(session.policySnapshot, 'downloadEnabled')) {
     throw new AuthorizationError('File download is disabled by workspace policy');
   }
 
-  // Generate signed URL
-  const url = await getDownloadUrl(sessionFile.storagePath, 3600); // 1 hour
-
-  // Log download (optional)
+  const url = await getDownloadUrl(sessionFile.storagePath, 3600);
   await logAction({
     action: 'file.downloaded',
     resource: 'sessionFile',
@@ -133,18 +176,9 @@ async function downloadFile({ fileId, user, sessionId }) {
     organizationId: session.organizationId,
     details: { fileName: sessionFile.fileName },
   });
-
   return url;
 }
 
-/**
- * Delete a file from session (only if policy allows or admin).
- * @param {object} params
- * @param {string} params.fileId
- * @param {object} params.user
- * @param {string} params.sessionId
- * @returns {Promise<void>}
- */
 async function deleteSessionFile({ fileId, user, sessionId }) {
   const sessionFile = await SessionFile.findOne({ _id: fileId, sessionId });
   if (!sessionFile) throw new NotFoundError('File not found');
@@ -152,10 +186,7 @@ async function deleteSessionFile({ fileId, user, sessionId }) {
   const session = await Session.findOne({ _id: sessionId, userId: user.userId });
   if (!session) throw new AuthorizationError('Not authorized');
 
-  // Delete from object storage
   await deleteFile(sessionFile.storagePath);
-
-  // Remove metadata
   await SessionFile.findByIdAndDelete(fileId);
 
   await logAction({
@@ -169,7 +200,9 @@ async function deleteSessionFile({ fileId, user, sessionId }) {
 
 module.exports = {
   uploadToSession,
+  listDownloads,
+  downloadFromContainer,
   listSessionFiles,
-  downloadFile,
+  downloadUploadedFile,
   deleteSessionFile,
 };

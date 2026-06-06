@@ -24,6 +24,7 @@ import styles from './index.module.scss';
 import NoItem from '../../../components/common/NoItem';
 import apiClient from '../../../services/apiClient';
 import crossIcon from '../../../assets/icons/cancel.png';
+import { getTemplates } from '../../../services/policyService';
 
 
 const containerVariants = {
@@ -48,6 +49,7 @@ export default function ManagerWorkspaces() {
   const [form, setForm] = useState({
     name: '',
     imageId: '',
+    policyId: '',                // ← new
     resources: { cpu: 1, memory: 1024, disk: 10 },
   });
 
@@ -61,6 +63,12 @@ export default function ManagerWorkspaces() {
   const { data: imagesData } = useQuery({
     queryKey: ['images'],
     queryFn: () => getImages(),
+  });
+
+  const { data: policiesData } = useQuery({
+    queryKey: ['policies', orgId],
+    queryFn: () => getTemplates(orgId),   // import from policyService
+    enabled: !!orgId,
   });
 
   const { data: usersData } = useQuery({
@@ -128,15 +136,26 @@ export default function ManagerWorkspaces() {
   // ----- handlers -----
   const openCreateModal = () => {
     setEditingWs(null);
-    setForm({ name: '', imageId: '', resources: { cpu: 1, memory: 1024, disk: 10 } });
+    // Find the organization's default policy template (if any)
+    const templates = policiesData?.data?.data || [];
+    const defaultTemplate = templates.find(p => p.isDefault);
+    setForm({
+      name: '',
+      imageId: '',
+      policyId: defaultTemplate ? defaultTemplate._id : '',   // auto‑select default
+      resources: { cpu: 1, memory: 1024, disk: 10 },
+    });
     setModalOpen(true);
   };
 
   const openEditModal = (ws) => {
     setEditingWs(ws);
+    // Extract the current policy template ID (handles populated and raw ObjectId)
+    const currentPolicyId = ws.policy?.templateId?._id || ws.policy?.templateId || '';
     setForm({
       name: ws.name,
       imageId: ws.imageId?._id || ws.imageId,
+      policyId: currentPolicyId,
       resources: { ...ws.resources },
     });
     setModalOpen(true);
@@ -147,10 +166,16 @@ export default function ManagerWorkspaces() {
       toast.error('نام و تصویر الزامی هستند');
       return;
     }
+    const data = {
+      name: form.name,
+      imageId: form.imageId,
+      policyId: form.policyId || undefined,   // send undefined if empty (use org default)
+      resources: form.resources,
+    };
     if (editingWs) {
-      updateMutation.mutate({ id: editingWs._id, data: form });
+      updateMutation.mutate({ id: editingWs._id, data });
     } else {
-      createMutation.mutate(form);
+      createMutation.mutate(data);
     }
   };
 
@@ -239,11 +264,23 @@ export default function ManagerWorkspaces() {
             options={images.map((img) => ({ label: img.name, value: img._id }))}
             required
           />
+          <FormField
+            label="قانون"
+            as="select"
+            value={form.policyId}
+            onChange={(e) => setForm({ ...form, policyId: e.target.value })}
+            options={(policiesData?.data?.data || []).map(p => ({
+              label: p.name + (p.isDefault ? ' (پیش‌فرض)' : ''),
+              value: p._id,
+            }))}
+             showDefaultOption={false}
+          />
           <div className={styles.resourcesGrid}>
             <FormField label="CPU" type="number" value={form.resources.cpu} onChange={(e) => setForm({ ...form, resources: { ...form.resources, cpu: Number(e.target.value) } })} min={0.1} step={0.1} />
             <FormField label="RAM (MB)" type="number" value={form.resources.memory} onChange={(e) => setForm({ ...form, resources: { ...form.resources, memory: Number(e.target.value) } })} min={128} />
             <FormField label="Disk (GB)" type="number" value={form.resources.disk} onChange={(e) => setForm({ ...form, resources: { ...form.resources, disk: Number(e.target.value) } })} min={1} />
           </div>
+
           <div className={styles.modalActions}>
             <Button onClick={handleSave} loading={createMutation.isLoading || updateMutation.isLoading}>{editingWs ? 'به‌روزرسانی' : 'ایجاد'}</Button>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>انصراف</Button>
@@ -318,11 +355,11 @@ export default function ManagerWorkspaces() {
                 {u.userId?.firstName} {u.userId?.lastName}
               </span>
               <div className={styles.unassign} onClick={() =>
-                    revokeMutation.mutate({
-                      workspaceId: selectedWorkspaceId,
-                      userId: u.userId._id,
-                    })
-                  }>
+                revokeMutation.mutate({
+                  workspaceId: selectedWorkspaceId,
+                  userId: u.userId._id,
+                })
+              }>
                 <img src={crossIcon} alt="حذف" title="حذف" />
               </div>
             </div>

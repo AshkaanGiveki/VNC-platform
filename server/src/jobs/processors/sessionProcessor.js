@@ -5,6 +5,7 @@
 const { getQueue } = require('../queues/sessionQueue');
 const sessionService = require('../../services/session.service');
 const logger = require('../../utils/logger');
+const { createNotification } = require('../../services/notification.service');
 
 /**
  * Register job processors on the session queue.
@@ -34,6 +35,16 @@ function registerProcessors() {
         sessionId,
         ip: 'system',
       });
+
+      await createNotification({
+        scope: 'user',
+        recipientIds: [session.userId],
+        category: 'info',
+        title: 'پایان زمان نشست',
+        body: 'نشست شما به علت پایان زمان مجاز استفاده به صورت خودکار به پایان رسید.',
+        organizationId: session.organizationId,
+      });
+
 
       logger.info(`Session ${sessionId} auto‑stopped successfully`);
     } catch (err) {
