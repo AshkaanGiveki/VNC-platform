@@ -39,6 +39,7 @@ async function launchContainer({ image, resources, policy, user, workspaceId }) 
         USER_ID: user._id.toString(),
         WORKSPACE_ID: workspaceId.toString(),
       },
+      policy,
       volumePath,
       recordable: policy.recordingEnabled || false,
     });

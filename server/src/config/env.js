@@ -18,6 +18,7 @@ const requiredEnvVars = [
   'STORAGE_ACCESS_KEY',
   'STORAGE_SECRET_KEY',
   'STORAGE_BUCKET',
+  'SESSION_STORAGE_PATH'
 ];
 
 /**
@@ -65,9 +66,10 @@ const env = {
 
   storage: {
     endpoint: process.env.STORAGE_ENDPOINT,
-    port: parseInt(process.env.STORAGE_PORT, 10) || 9000,
+    port: parseInt(process.env.STORAGE_PORT, 10) || 4410,
     accessKey: process.env.STORAGE_ACCESS_KEY,
     secretKey: process.env.STORAGE_SECRET_KEY,
+    sessionStoragePath: process.env.SESSION_STORAGE_PATH || path.join(__dirname, '../../sessions'),
     bucket: process.env.STORAGE_BUCKET,
     useSSL: process.env.STORAGE_USE_SSL === 'true',
   },

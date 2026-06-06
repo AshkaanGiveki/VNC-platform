@@ -1,7 +1,3 @@
-/**
- * Workspace service – CRUD and assignment to users.
- * @module services/workspace.service
- */
 const Workspace = require('../models/Workspace');
 const UserWorkspace = require('../models/UserWorkspace');
 const Image = require('../models/Image');
@@ -25,10 +21,27 @@ async function createWorkspace({ actor, organizationId, data }) {
     throw new NotFoundError('Image not found or disabled');
   }
 
-  const workspace = await Workspace.create({
-    ...data,
+  // Build workspace data
+  const workspaceData = {
+    name: data.name,
+    description: data.description,
+    imageId: data.imageId,
+    resources: data.resources,
+    isActive: data.isActive,
     organizationId,
-  });
+  };
+
+  // Handle policy assignment
+  if (data.policyId) {
+    workspaceData.policy = {
+      templateId: data.policyId,
+      overrides: data.policyOverrides || {},
+    };
+  } else if (data.policy) {
+    workspaceData.policy = data.policy;
+  }
+
+  const workspace = await Workspace.create(workspaceData);
 
   logger.info(`Workspace created: ${workspace.name}`);
   await logAction({
@@ -53,7 +66,7 @@ async function listWorkspaces(organizationId, queryParams) {
   if (queryParams.imageId) filter.imageId = queryParams.imageId;
 
   const [workspaces, total] = await Promise.all([
-    applyPagination(Workspace.find(filter).populate('imageId', 'name type'), pagination).lean(),
+    applyPagination(Workspace.find(filter).populate('imageId', 'name type').populate('policy.templateId', 'name'), pagination).lean(),
     Workspace.countDocuments(filter),
   ]);
 
@@ -64,7 +77,9 @@ async function listWorkspaces(organizationId, queryParams) {
  * Get workspace by ID.
  */
 async function getWorkspace(workspaceId, organizationId) {
-  const workspace = await Workspace.findOne({ _id: workspaceId, organizationId }).populate('imageId');
+  const workspace = await Workspace.findOne({ _id: workspaceId, organizationId })
+    .populate('imageId')
+    .populate('policy.templateId', 'name options');
   if (!workspace) throw new NotFoundError('Workspace not found');
   return workspace;
 }
@@ -75,6 +90,16 @@ async function getWorkspace(workspaceId, organizationId) {
 async function updateWorkspace({ actor, workspaceId, organizationId, updates }) {
   if (![ROLES.ORG_ADMIN, ROLES.MANAGER].includes(actor.role)) {
     throw new AuthorizationError('Insufficient permissions');
+  }
+
+  // Handle policy update
+  if (updates.policyId) {
+    updates.policy = {
+      templateId: updates.policyId,
+      overrides: updates.policyOverrides || {},
+    };
+    delete updates.policyId;
+    delete updates.policyOverrides;
   }
 
   const workspace = await Workspace.findOneAndUpdate(
@@ -97,7 +122,7 @@ async function updateWorkspace({ actor, workspaceId, organizationId, updates }) 
 }
 
 /**
- * Soft-delete workspace (set inactive) – only if no active sessions? (checked in controller or leave to session service)
+ * Soft-delete workspace (set inactive)
  */
 async function deleteWorkspace({ actor, workspaceId, organizationId }) {
   if (![ROLES.ORG_ADMIN, ROLES.MANAGER].includes(actor.role)) {
@@ -137,7 +162,6 @@ async function assignWorkspaceToUser({ actor, workspaceId, userId, organizationI
     throw new AuthorizationError('Only regular users can be assigned to workspaces');
   }
 
-  // Validate workspace and user belong to same org
   const [workspace, user] = await Promise.all([
     Workspace.findOne({ _id: workspaceId, organizationId, isActive: true }),
     User.findOne({ _id: userId, organizationId, isActive: true }),
@@ -145,7 +169,6 @@ async function assignWorkspaceToUser({ actor, workspaceId, userId, organizationI
   if (!workspace) throw new NotFoundError('Workspace not found or inactive');
   if (!user) throw new NotFoundError('User not found or inactive');
 
-  // Check for existing assignment
   const existing = await UserWorkspace.findOne({ userId, workspaceId });
   if (existing) {
     throw new ConflictError('فضای کاری از قبل به این کاربر اختصاص داده شده است');
@@ -162,7 +185,7 @@ async function assignWorkspaceToUser({ actor, workspaceId, userId, organizationI
   await logAction({
     action: 'workspace.assigned',
     resource: 'userWorkspace',
-    resourceId: workspaceId, // or new UserWorkspace doc's id
+    resourceId: workspaceId,
     userId: actor.userId,
     organizationId,
     details: { assignedUserId: userId },

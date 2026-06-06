@@ -9,8 +9,10 @@ import styles from './index.module.scss';
 import playIcon from '../../../assets/icons/play.png';
 import pauseIcon from '../../../assets/icons/pause.svg';
 import stopIcon from '../../../assets/icons/stop.png';
+import fileIcon from '../../../assets/icons/folder.png';
 import { sessionStatus } from '../../../locales/fa';
 import NoItem from '../../../components/common/NoItem';
+import { Link } from 'react-router-dom';
 
 export default function UserSessions() {
   const queryClient = useQueryClient();
@@ -19,6 +21,7 @@ export default function UserSessions() {
   const { data, isLoading } = useQuery({
     queryKey: ['userSessions'],
     queryFn: () => getUserSessions({ limit: 50 }),
+    refetchInterval: 10000,
   });
 
   const stopMutation = useMutation({
@@ -97,7 +100,7 @@ export default function UserSessions() {
                     <div>
                       <h3>{s.workspaceId?.name || 'بدون نام'}</h3>
                       <p className={styles.status}>
-                        {s.status === 'starting' && <span className={styles.spinner} />}
+                        {/* {s.status === 'starting' && <span className={styles.spinner} />} */}
                         وضعیت: {sessionStatus[s.status] || s.status}
                       </p>
                     </div>
@@ -113,6 +116,12 @@ export default function UserSessions() {
                             <div className={styles.buttonImg} onClick={() => openSession(s._id)}>
                               <img className="icon" src={playIcon} alt="اجرای نشست" title="باز کردن نشست" />
                             </div>
+                            {/* <div className={styles.buttonImg} onClick={() => navigate(`/user/sessions/${s._id}/files`)}> */}
+                            {/* <Link className={styles.buttonImg} onClick={() => window.open(`/user/sessions/${s._id}/files`)}> */}
+                            <Link className={styles.buttonImg} to={`/user/sessions/${s._id}/files`}>                            
+                              <img className='icon' src={fileIcon} alt="فایل‌ها" title="مدیریت فایل‌ها" />
+                            </Link>
+
                             <div className={styles.buttonImg} onClick={() => pauseMutation.mutate(s._id)}>
                               <img className="icon" src={pauseIcon} alt="توقف موقت نشست" title="توقف موقت نشست" />
                             </div>
