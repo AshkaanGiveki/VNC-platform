@@ -3,7 +3,7 @@ import { getUsers } from '../../../services/userService';
 import { getWorkspaces } from '../../../services/workspaceService';
 import { getOrgSessions } from '../../../services/sessionService';
 import { useSelector } from 'react-redux';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import Card from '../../../components/common/Card';
 import Loader from '../../../components/common/Loader';
 import { motion } from 'framer-motion';
@@ -45,6 +45,27 @@ export default function ManagerDashboard() {
     { name: 'ادمین', value: users?.data?.data?.filter(u => u.role === 'org_admin').length || 0 },
   ];
 
+  const RADIAN = Math.PI / 180;
+
+  const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
+    const radius = outerRadius * 1.6;          // place text well outside the pie
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="var(--text-primary)"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        fontSize={11}
+      >
+        {name} ({(percent * 100).toFixed(0)}%)
+      </text>
+    );
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={styles.dashboard}>
       <h1 className={styles.title}>داشبورد سازمان</h1>
@@ -71,14 +92,14 @@ export default function ManagerDashboard() {
         <Card className={styles.chartCard}>
           <h3>وضعیت نشست‌ها</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={[
+            <BarChart margin={{ top: 10, right: 0, left: 0, bottom: 30 }} data={[
               { name: 'فعال', value: activeSessions },
               { name: 'مکث', value: pausedSessions },
               { name: 'متوقف', value: stoppedSessions },
             ]}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis allowDecimals={false} />
+              <YAxis allowDecimals={false} tickMargin={20} />
               <Tooltip />
               <Bar dataKey="value" fill="var(--accent)" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -88,15 +109,18 @@ export default function ManagerDashboard() {
         <Card className={styles.chartCard}>
           <h3>نقش کاربران</h3>
           <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
+            <PieChart margin={{ top: 20, right: 40, left: 40, bottom: 20 }}>
               <Pie
                 data={roleDistribution}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={80}
-                label={({ name, value }) => `${name}: ${value}`}
+                outerRadius={90}
+                innerRadius={0}
+                label={renderCustomizedLabel}
+                labelLine={false}
+                isAnimationActive={false}
               >
                 {roleDistribution.map((entry, index) => (
                   <Cell key={index} fill={COLORS[index % COLORS.length]} />

@@ -114,35 +114,6 @@
   height: 30px;
 }
 
-.mobileNav {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg-sidebar);
-  border-top: 1px solid var(--border);
-  justify-content: space-around;
-  align-items: center;
-  height: 60px;
-  z-index: 100;
-}
-
-.mobileLink {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-
-  &.active {
-    color: var(--accent);
-  }
-
-  span {
-    font-size: 1.4rem;
-  }
-}
 
 @include respond(mobile) {
   .sidebar {
@@ -152,4 +123,90 @@
   .mobileNav {
     display: flex;
   }
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-secondary);
+}
+
+// ── Mobile Drawer ──
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 110;
+}
+
+.mobileDrawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 260px;
+  background: var(--bg-sidebar);
+  z-index: 120;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  h3 { font-size: 1.1rem; color: var(--text-primary); }
+  button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-secondary); }
+}
+
+.mobileNav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mobileLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+  &:hover { background: var(--accent); color: white; text-decoration: none; }
+  &.active { background: var(--accent); color: white; }
+}
+
+.mobileBottom {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: inherit;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .overlay { display: block; }
+  .mobileDrawer { display: block; }
 }

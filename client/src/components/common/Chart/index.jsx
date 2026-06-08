@@ -7,7 +7,7 @@ export default function Chart({ title, children, className }) {
     <div className={cn(styles.chartCard, className)}>
       {title && <h4 className={styles.title}>{title}</h4>}
       <div className={styles.chartBody}>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={300}>
           {children}
         </ResponsiveContainer>
       </div>

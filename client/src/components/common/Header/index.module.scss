@@ -12,7 +12,12 @@
 }
 
 .right {
+  display: flex;
+  height: 40px;
+  gap: 10px;
   .greeting {
+    height: 40px;
+    line-height: 40px;
     font-size: 1.1rem;
     color: var(--text-primary);
   }
@@ -71,4 +76,18 @@
   align-items: center;
   justify-content: center;
   pointer-events: none; // so click passes to the parent
+}
+
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  margin-left: 10px;
+}
+
+@media (max-width: 768px) {
+  .hamburger { display: block; }
 }

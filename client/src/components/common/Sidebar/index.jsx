@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleSidebar } from '../../../redux/slices/uiSlice';
 import { logout } from '../../../redux/slices/authSlice';
@@ -21,6 +21,7 @@ import notifications from '../../../assets/icons/notification.png';
 import themeIcon from '../../../assets/icons/theme.png';
 import sendNotif from '../../../assets/icons/sendNotif.png';
 import logo from '../../../assets/icons/icon.png';
+import { closeMobileMenu } from '../../../redux/slices/uiSlice';
 
 const menuItems = {
   superadmin: [
@@ -69,6 +70,8 @@ export default function Sidebar() {
 
   const items = user ? menuItems[user.role] : [];
   const dashboardPath = items.length > 0 ? items[0].path : '';
+
+  const mobileMenuOpen = useSelector((state) => state.ui.mobileMenuOpen);
 
   return (
     <>
@@ -121,19 +124,46 @@ export default function Sidebar() {
       </motion.aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className={styles.mobileNav}>
-        {items.slice(0, 5).map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              cn(styles.mobileLink, isActive && styles.active)
-            }
-          >
-            <span>{item.icon}</span>
-          </NavLink>
-        ))}
-      </nav>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <div className={styles.overlay} initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }} onClick={() => dispatch(closeMobileMenu())} />
+            <motion.div
+              className={styles.mobileDrawer}
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+            >
+              <div className={styles.mobileDrawerHeader}>
+                <h3>منو</h3>
+                <button onClick={() => dispatch(closeMobileMenu())}>✕</button>
+              </div>
+              <nav className={styles.mobileNav}>
+                {items.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end
+                    className={({ isActive }) => cn(styles.mobileLink, isActive && styles.active)}
+                    onClick={() => dispatch(closeMobileMenu())}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </nav>
+              <div className={styles.mobileBottom}>
+                <button onClick={switchTheme} className={styles.iconBtn}>
+                  <img src={themeIcon} alt='theme' className={`${styles.themeIcon} icon`} />
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }
