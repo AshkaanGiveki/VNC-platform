@@ -11,7 +11,6 @@ import Loader from '../../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
-import { cn } from '../../../utils/cn';
 
 const containerVariants = {
   hidden: {},
@@ -32,8 +31,12 @@ export default function Organizations() {
     name: '',
     domain: '',
     isActive: true,
+    settings: {
+      recordingEnabled: true,
+    },
     manager: {
       email: '',
+      password: '',
       firstName: '',
       lastName: '',
       isActive: true,
@@ -45,10 +48,8 @@ export default function Organizations() {
     queryFn: () => getOrganizations({ page, limit: 10 }),
   });
 
-  // Toggle organization active status with optimistic update + refetch
   const toggleOrgStatus = async (org) => {
     const newStatus = !org.isActive;
-    // Optimistically update cache
     queryClient.setQueryData(['organizations', page], (old) => {
       if (!old) return old;
       return {
@@ -64,10 +65,8 @@ export default function Organizations() {
     try {
       await updateOrganization(org._id, { isActive: newStatus });
       toast.success(newStatus ? 'سازمان فعال شد' : 'سازمان غیرفعال شد');
-      // Refetch to confirm
       queryClient.invalidateQueries(['organizations', page]);
     } catch (err) {
-      // Revert on failure
       queryClient.invalidateQueries(['organizations', page]);
       toast.error('خطا در تغییر وضعیت');
     }
@@ -100,13 +99,13 @@ export default function Organizations() {
       name: '',
       domain: '',
       isActive: true,
-      manager: { email: '', firstName: '', lastName: '', isActive: true },
+      settings: { recordingEnabled: true },
+      manager: { email: '', password: '', firstName: '', lastName: '', isActive: true },
     });
   };
 
   const handleEdit = async (org) => {
     setEditingOrg(org);
-    // Fetch manager details
     let managerData = { email: '', firstName: '', lastName: '', isActive: true };
     try {
       const res = await apiClient.get(`/organizations/${org._id}/manager`);
@@ -126,6 +125,9 @@ export default function Organizations() {
       name: org.name,
       domain: org.domain || '',
       isActive: org.isActive,
+      settings: {
+        recordingEnabled: org.settings?.recordingEnabled ?? true,
+      },
       manager: managerData,
     });
     setModalOpen(true);
@@ -139,7 +141,12 @@ export default function Organizations() {
     try {
       await updateMutation.mutateAsync({
         id: editingOrg._id,
-        data: { name: form.name, domain: form.domain, isActive: form.isActive },
+        data: {
+          name: form.name,
+          domain: form.domain,
+          isActive: form.isActive,
+          settings: form.settings,
+        },
       });
     } catch (err) {
       toast.error(err.response?.data?.message || 'خطا در به‌روزرسانی سازمان');
@@ -187,7 +194,7 @@ export default function Organizations() {
               <div>
                 <h3>
                   {org.name}{' '}
-                  <span className={cn(org.isActive ? styles.active : styles.inactive, styles.status)}>
+                  <span className={org.isActive ? styles.active : styles.inactive}>
                     {org.isActive ? 'فعال' : 'غیرفعال'}
                   </span>
                 </h3>
@@ -217,17 +224,8 @@ export default function Organizations() {
       <Modal isOpen={modalOpen} onClose={closeModal} title="ویرایش سازمان">
         <div className={styles.form}>
           <h3>اطلاعات سازمان</h3>
-          <FormField
-            label="نام"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-          <FormField
-            label="دامنه"
-            value={form.domain}
-            onChange={(e) => setForm({ ...form, domain: e.target.value })}
-          />
+          <FormField label="نام" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <FormField label="دامنه" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
           <FormField
             label="وضعیت"
             as="select"
@@ -238,48 +236,39 @@ export default function Organizations() {
               { label: 'غیرفعال', value: 'inactive' },
             ]}
           />
+          <FormField
+            label="ضبط جلسات"
+            as="select"
+            value={form.settings.recordingEnabled ? 'enabled' : 'disabled'}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                settings: { ...form.settings, recordingEnabled: e.target.value === 'enabled' },
+              })
+            }
+            options={[
+              { label: 'فعال', value: 'enabled' },
+              { label: 'غیرفعال', value: 'disabled' },
+            ]}
+          />
+          <hr />
           <h3>اطلاعات مدیر</h3>
-          <FormField
-            label="نام"
-            value={form.manager.firstName}
-            onChange={(e) =>
-              setForm({ ...form, manager: { ...form.manager, firstName: e.target.value } })
-            }
-          />
-          <FormField
-            label="نام خانوادگی"
-            value={form.manager.lastName}
-            onChange={(e) =>
-              setForm({ ...form, manager: { ...form.manager, lastName: e.target.value } })
-            }
-          />
-          <FormField
-            label="ایمیل"
-            value={form.manager.email}
-            onChange={(e) =>
-              setForm({ ...form, manager: { ...form.manager, email: e.target.value } })
-            }
-          />
+          <FormField label="نام" value={form.manager.firstName} onChange={(e) => setForm({ ...form, manager: { ...form.manager, firstName: e.target.value } })} />
+          <FormField label="نام خانوادگی" value={form.manager.lastName} onChange={(e) => setForm({ ...form, manager: { ...form.manager, lastName: e.target.value } })} />
+          <FormField label="ایمیل" value={form.manager.email} onChange={(e) => setForm({ ...form, manager: { ...form.manager, email: e.target.value } })} />
+          <FormField label="رمز عبور جدید" type="password" value={form.manager.password} onChange={(e) => setForm({ ...form, manager: { ...form.manager, password: e.target.value } })} />
           <FormField
             label="وضعیت مدیر"
             as="select"
             value={form.manager.isActive ? 'active' : 'blocked'}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                manager: { ...form.manager, isActive: e.target.value === 'active' },
-              })
-            }
+            onChange={(e) => setForm({ ...form, manager: { ...form.manager, isActive: e.target.value === 'active' } })}
             options={[
               { label: 'فعال', value: 'active' },
               { label: 'مسدود', value: 'blocked' },
             ]}
           />
           <div className={styles.modalActions}>
-            <Button
-              onClick={handleSave}
-              loading={updateMutation.isLoading || updateManagerMutation.isLoading}
-            >
+            <Button onClick={handleSave} loading={updateMutation.isLoading || updateManagerMutation.isLoading}>
               ذخیره
             </Button>
             <Button variant="secondary" onClick={closeModal}>

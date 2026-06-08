@@ -26,7 +26,7 @@ export default function ForgotPassword() {
 
   return (
     <>
-      <Helmet><title>بازیابی رمز عبور | VWP</title></Helmet>
+      <Helmet><title>بازیابی رمز عبور</title></Helmet>
       <motion.div
         className={styles.container}
         initial={{ opacity: 0, y: 20 }}

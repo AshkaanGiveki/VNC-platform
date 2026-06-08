@@ -30,7 +30,7 @@ export default function ResetPassword() {
 
   return (
     <>
-      <Helmet><title>تغییر رمز عبور | VWP</title></Helmet>
+      <Helmet><title>تغییر رمز عبور</title></Helmet>
       <motion.div
         className={styles.container}
         initial={{ opacity: 0, y: 20 }}

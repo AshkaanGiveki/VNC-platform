@@ -116,5 +116,20 @@ export const router = createBrowserRouter([
       { path: '/profile', element: <SuspenseWrapper><Profile /></SuspenseWrapper> },
     ],
   },
+
+  {
+  path: '/',
+  loader: () => {
+    const { auth } = store.getState();
+    if (auth.isAuthenticated) {
+      const role = auth.user?.role;
+      if (role === 'superadmin') return redirect('/admin');
+      if (role === 'manager' || role === 'org_admin') return redirect('/manager');
+      return redirect('/user');
+    }
+    return redirect('/login');
+  },
+  element: null, // loader handles everything
+},
   { path: '*', element: <NotFound /> },
 ]);

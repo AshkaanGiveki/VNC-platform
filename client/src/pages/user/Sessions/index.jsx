@@ -10,9 +10,11 @@ import playIcon from '../../../assets/icons/play.png';
 import pauseIcon from '../../../assets/icons/pause.svg';
 import stopIcon from '../../../assets/icons/stop.png';
 import fileIcon from '../../../assets/icons/folder.png';
+import forceStopIcon from '../../../assets/icons/forceStop.png';
 import { sessionStatus } from '../../../locales/fa';
 import NoItem from '../../../components/common/NoItem';
 import { Link } from 'react-router-dom';
+import apiClient from '../../../services/apiClient';
 
 export default function UserSessions() {
   const queryClient = useQueryClient();
@@ -55,6 +57,15 @@ export default function UserSessions() {
       setActingSessionId(null);
     },
     onSettled: () => setActingSessionId(null),
+  });
+
+  const forceStopMutation = useMutation({
+    mutationFn: (sessionId) => apiClient.post(`/sessions/${sessionId}/force-stop`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userSessions']);
+      toast.success('نشست به‌اجبار متوقف شد');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
 
   const openSession = (sessionId) => {
@@ -118,7 +129,7 @@ export default function UserSessions() {
                             </div>
                             {/* <div className={styles.buttonImg} onClick={() => navigate(`/user/sessions/${s._id}/files`)}> */}
                             {/* <Link className={styles.buttonImg} onClick={() => window.open(`/user/sessions/${s._id}/files`)}> */}
-                            <Link className={styles.buttonImg} to={`/user/sessions/${s._id}/files`}>                            
+                            <Link className={styles.buttonImg} to={`/user/sessions/${s._id}/files`}>
                               <img className='icon' src={fileIcon} alt="فایل‌ها" title="مدیریت فایل‌ها" />
                             </Link>
 
@@ -128,6 +139,15 @@ export default function UserSessions() {
                             <div className={styles.buttonImg} onClick={() => stopMutation.mutate(s._id)}>
                               <img className="icon" src={stopIcon} alt="توقف کامل نشست" title="توقف کامل نشست" />
                             </div>
+                            {s.status !== 'stopped' && s.status !== 'failed' && (
+                              <div className={styles.buttonImg} onClick={() => {
+                                if (confirm('آیا از توقف اجباری این نشست اطمینان دارید؟')) {
+                                  forceStopMutation.mutate(s._id);
+                                }
+                              }}>
+                                <img className="icon" src={forceStopIcon} alt="توقف اجباری" title="توقف اجباری نشست" />
+                              </div>
+                            )}
                           </>
                         )}
                         {s.status === 'paused' && (
