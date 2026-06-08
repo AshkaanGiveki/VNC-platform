@@ -12,7 +12,6 @@ const recordingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Session',
       required: true,
-      unique: true, // one recording per session
     },
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,

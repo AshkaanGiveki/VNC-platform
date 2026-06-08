@@ -117,6 +117,7 @@ async function getDownloadUrl(key, expiresIn = 3600) {
     Bucket: env.storage.bucket,
     Key: key,
   });
+  console.log('HERE');
   return getSignedUrl(client, command, { expiresIn });
 }
 

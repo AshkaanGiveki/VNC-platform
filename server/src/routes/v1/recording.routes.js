@@ -14,9 +14,7 @@ orgRecordingRouter.post('/:id/recording/stop', sessionController.stopRecording);
 // Users see their own recordings; admins can query org-wide
 router.get('/', recordingController.getRecordings);
 router.get('/:id', recordingController.getRecording);
-router.delete('/:id', authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN), recordingController.deleteRecording);
-
-
+router.delete('/:id', authorize(ROLES.ORG_ADMIN, ROLES.SUPERADMIN, ROLES.MANAGER), recordingController.deleteRecording);
 
 
 module.exports = router;

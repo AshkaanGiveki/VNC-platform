@@ -76,49 +76,6 @@ function waitForHttps(url, timeoutMs = 60000) {
   });
 }
 
-// async function launchContainer({ image, resources, environment, volumePath, policy }) {
-//   await ensureImage(image);
-
-//   // Environment variables for KasmVNC and policy enforcement
-//   const envVars = [
-//     `VNC_PW=${environment.VNC_PW || 'password'}`,
-//     `KASM_CLIPBOARD=${policy.clipboard !== false ? '1' : '0'}`,
-//     `KASM_FILE_TRANSFER=${(policy.uploadEnabled || policy.downloadEnabled) ? '1' : '0'}`,
-//     `KASM_UPLOAD=${policy.uploadEnabled !== false ? '1' : '0'}`,
-//     `KASM_DOWNLOAD=${policy.downloadEnabled !== false ? '1' : '0'}`,
-//     `USER_ID=${environment.USER_ID}`,
-//     `WORKSPACE_ID=${environment.WORKSPACE_ID}`,
-//   ];
-
-//   logger.info(`Container env vars: ${JSON.stringify(envVars)}`);
-
-//   // Build host config
-//   const hostConfig = {
-//     NanoCpus: resources.cpu * 1e9,
-//     Memory: resources.memory * 1024 * 1024,
-//     MemorySwap: resources.memory * 1024 * 1024 * 2,
-//     PortBindings: { '6901/tcp': [{ HostPort: '0' }] },
-//     CapAdd: ['NET_ADMIN'],
-//     ShmSize: 2 * 1024 * 1024 * 1024,
-//     Binds: [],
-//   };
-
-
-//   // Session volume base
-//   // const sessionVolumeBase = `/data/sessions/${environment.USER_ID}/${environment.WORKSPACE_ID}`;
-//   const sessionVolumeBase = path.join(config.env.sessionStoragePath, environment.USER_ID, environment.WORKSPACE_ID);
-
-//   const uploadsPath = `${sessionVolumeBase}/Uploads`;
-//   const downloadsPath = `${sessionVolumeBase}/Downloads`;
-
-//   fs.mkdirSync(uploadsPath, { recursive: true });
-//   fs.mkdirSync(downloadsPath, { recursive: true });
-
-
-//   hostConfig.Binds = [
-//   `//e/data/sessions/${environment.USER_ID}/${environment.WORKSPACE_ID}/Uploads:/home/kasm-user/Desktop/Uploads:rw`,
-//   `//e/data/sessions/${environment.USER_ID}/${environment.WORKSPACE_ID}/Downloads:/home/kasm-user/Desktop/Downloads:rw`,
-// ];
 async function launchContainer({ image, resources, environment, volumePath, policy }) {
   await ensureImage(image);
 
@@ -130,6 +87,7 @@ async function launchContainer({ image, resources, environment, volumePath, poli
     `KASM_DOWNLOAD=${policy.downloadEnabled !== false ? '1' : '0'}`,
     `USER_ID=${environment.USER_ID}`,
     `WORKSPACE_ID=${environment.WORKSPACE_ID}`,
+    `KASM_NO_AUTH=1`,
   ];
 
   logger.info(`Container env vars: ${JSON.stringify(envVars)}`);
@@ -144,30 +102,6 @@ async function launchContainer({ image, resources, environment, volumePath, poli
     Binds: [],
   };
 
-  // Dynamic path from config – resolve to absolute
-  // const storageRoot = path.resolve(config.env.sessionStoragePath);   // ← make absolute
-  // const sessionDir = path.join(storageRoot, environment.USER_ID, environment.WORKSPACE_ID);
-  // const uploadsPath = path.join(sessionDir, 'Uploads');
-  // const downloadsPath = path.join(sessionDir, 'Downloads');
-
-  // fs.mkdirSync(uploadsPath, { recursive: true });
-  // fs.mkdirSync(downloadsPath, { recursive: true });
-
-  // // Build bind strings (on Windows use //e/... format)
-  // let uploadsBind = uploadsPath;
-  // let downloadsBind = downloadsPath;
-  // if (os.platform() === 'win32') {
-  //   uploadsBind = uploadsPath.replace(/\\/g, '/').replace(/^(\w):/, '//$1').toLowerCase();
-  //   downloadsBind = downloadsPath.replace(/\\/g, '/').replace(/^(\w):/, '//$1').toLowerCase();
-  // }
-
-  // hostConfig.Binds = [
-  //   `${uploadsBind}:/home/kasm-user/Desktop/Uploads:rw`,
-  //   `${downloadsBind}:/home/kasm-user/Desktop/Downloads:rw`,
-  // ];
-
-  // logger.info(`Bind mounts: ${hostConfig.Binds.join(', ')}`);
-
   const storageRoot = path.resolve(config.env.sessionStoragePath);
   const sessionDir = path.join(storageRoot, environment.USER_ID, environment.WORKSPACE_ID);
 
@@ -179,23 +113,25 @@ async function launchContainer({ image, resources, environment, volumePath, poli
   };
 
   if (volumePath) {
-    // File persistence ON – mount the entire home directory
     const homeBind = `${toDockerPath(volumePath)}:/home/kasm-user:rw`;
     hostConfig.Binds = [homeBind];
     logger.info(`Persistent home mount: ${homeBind}`);
   } else {
-    // File persistence OFF – only mount exchange folders
     const uploadsPath = path.join(sessionDir, 'Desktop', 'Uploads');
     const downloadsPath = path.join(sessionDir, 'Desktop', 'Downloads');
+    const recordingsPath = path.join(sessionDir, 'Desktop', 'Recordings');
     fs.mkdirSync(uploadsPath, { recursive: true });
     fs.mkdirSync(downloadsPath, { recursive: true });
+    fs.mkdirSync(recordingsPath, { recursive: true });
 
     hostConfig.Binds = [
       `${toDockerPath(uploadsPath)}:/home/kasm-user/Desktop/Uploads:rw`,
       `${toDockerPath(downloadsPath)}:/home/kasm-user/Desktop/Downloads:rw`,
+      `${toDockerPath(recordingsPath)}:/home/kasm-user/Desktop/Recordings:rw`
     ];
     logger.info(`Exchange mounts: ${hostConfig.Binds.join(', ')}`);
   }
+
   // Create and start container
   const container = await docker.createContainer({
     Image: image,
@@ -222,6 +158,34 @@ async function launchContainer({ image, resources, environment, volumePath, poli
   logger.info(`Waiting for container ${containerId} on port ${hostPort}...`);
   await waitForHttps(url, 60000);
   logger.info(`Container ${containerId} is ready`);
+
+  // ── Apply network‑blocking policy ──────────────────────────────────────
+  const containerObj = docker.getContainer(containerId);
+  if (policy.blockedIps && policy.blockedIps.length > 0) {
+    for (const ip of policy.blockedIps) {
+      try {
+        // Create exec instance
+        const exec = await containerObj.exec({
+          Cmd: ['iptables', '-A', 'OUTPUT', '-d', ip, '-j', 'DROP'],
+          AttachStdout: true,
+          AttachStderr: true,
+          Tty: false,
+        });
+        // Start it and wait for completion
+        const stream = await exec.start({ hijack: true, stdin: false });
+        let output = '';
+        stream.on('data', (chunk) => { output += chunk.toString(); });
+        await new Promise((resolve, reject) => {
+          stream.on('end', resolve);
+          stream.on('error', reject);
+        });
+        if (output) logger.debug(`iptables output for ${ip}: ${output}`);
+        logger.info(`Blocked IP ${ip} on container ${containerId}`);
+      } catch (err) {
+        logger.error(`Failed to block IP ${ip} on ${containerId}: ${err.message}`);
+      }
+    }
+  }
 
   return { containerId, url, websocketUrl };
 }
