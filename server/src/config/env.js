@@ -18,7 +18,11 @@ const requiredEnvVars = [
   'STORAGE_ACCESS_KEY',
   'STORAGE_SECRET_KEY',
   'STORAGE_BUCKET',
-  'SESSION_STORAGE_PATH'
+  'SESSION_STORAGE_PATH',
+  'EMAIL_HOST',
+  'EMAIL_PORT',
+  'EMAIL_USER',
+  'EMAIL_PASS'
 ];
 
 /**
@@ -79,6 +83,11 @@ const env = {
     apiUrl: process.env.KASM_API_URL,
     apiKey: process.env.KASM_API_KEY,
   },
+
+  emailHost: process.env.EMAIL_HOST,
+  emailPort: process.env.EMAIL_PORT,
+  emailUser: process.env.EMAIL_USER,
+  emailPass: process.env.EMAIL_PASS,
 };
 
 module.exports = Object.freeze(env);

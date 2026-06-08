@@ -17,16 +17,23 @@
 
   &.collapsed {
     width: 80px;
-    .label { display: none; }
+
+    .label {
+      display: none;
+    }
   }
+}
+.logoContainer{
+  width: 100%;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--accent);
-  text-align: center;
-  margin-bottom: 30px;
+  width: 64px;
+  height: 64px
 }
 
 .nav {
@@ -35,7 +42,7 @@
   flex-direction: column;
   gap: 5px;
   padding: 0 10px;
-  position: relative;    // needed for absolute indicator
+  position: relative; // needed for absolute indicator
 }
 
 .link {
@@ -47,7 +54,7 @@
   color: var(--text-primary);
   transition: color 0.2s;
   position: relative;
-  z-index: 1;           // above the indicator
+  z-index: 1; // above the indicator
 
   &:hover {
     // color: white;
@@ -69,13 +76,20 @@
   width: 100%;
   border-radius: 10px;
   background: #eee4;
-//   border-color: var(--accent);
+  //   border-color: var(--accent);
   border: 1px solid #888;
-//   z-index: 0;
+  //   z-index: 0;
 }
 
-.icon { width:20px; height: 20px }
-.label { font-size: 0.9rem; font-weight: 600; }
+.icon {
+  width: 20px;
+  height: 20px
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
 
 .bottom {
   display: flex;
@@ -100,33 +114,99 @@
   height: 30px;
 }
 
-.mobileNav {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg-sidebar);
-  border-top: 1px solid var(--border);
+
+@include respond(mobile) {
+  .sidebar {
+    display: none;
+  }
+
+  .mobileNav {
+    display: flex;
+  }
+}
+
+.bottom {
+  display: flex;
   justify-content: space-around;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-secondary);
+}
+
+// ── Mobile Drawer ──
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 110;
+}
+
+.mobileDrawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 260px;
+  background: var(--bg-sidebar);
+  z-index: 120;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  height: 60px;
-  z-index: 100;
+  margin-bottom: 20px;
+  h3 { font-size: 1.1rem; color: var(--text-primary); }
+  button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-secondary); }
+}
+
+.mobileNav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .mobileLink {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-
-  &.active { color: var(--accent); }
-
-  span { font-size: 1.4rem; }
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+  &:hover { background: var(--accent); color: white; text-decoration: none; }
+  &.active { background: var(--accent); color: white; }
 }
 
-@include respond(mobile) {
+.mobileBottom {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: inherit;
+  }
+}
+
+@media (max-width: 768px) {
   .sidebar { display: none; }
-  .mobileNav { display: flex; }
+  .overlay { display: block; }
+  .mobileDrawer { display: block; }
 }

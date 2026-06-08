@@ -14,6 +14,7 @@ router.get('/:id', validate({ params: sessionValidator.sessionIdParam }), sessio
 router.post('/:id/stop', validate({ params: sessionValidator.sessionIdParam }), sessionController.stopSession);
 router.post('/:id/pause', validate({ params: sessionValidator.sessionIdParam }), sessionController.pauseSession);
 router.post('/:id/resume', validate({ params: sessionValidator.sessionIdParam }), sessionController.resumeSession);
+router.post('/:id/force-stop', authenticate, sessionController.forceStopSession);
 
 // Org-scoped session routes (for /api/v1/organizations/:orgId/sessions)
 const orgSessionRouter = require('express').Router({ mergeParams: true });
@@ -25,5 +26,4 @@ orgSessionRouter.use(authenticate, resolveOrg, authorize(ROLES.ORG_ADMIN, ROLES.
 orgSessionRouter.get('/', validate({ query: sessionValidator.orgSessionQueryParams }), sessionController.listOrgSessions);
 orgSessionRouter.post('/:id/recording/start', sessionController.startRecording);
 orgSessionRouter.post('/:id/recording/stop', sessionController.stopRecording);
-
 module.exports = { userSessionRouter: router, orgSessionRouter };

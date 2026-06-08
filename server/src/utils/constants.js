@@ -44,6 +44,8 @@ const POLICY_OPTIONS = Object.freeze({
   DOWNLOAD_ENABLED: 'downloadEnabled',
   UPLOAD_ENABLED: 'uploadEnabled',
   MAX_SESSION_DURATION: 'maxSessionDuration',
+  MAX_CONCURRENT_SESSIONS: 'maxConcurrentSessions',
+  BLOCKED_IPS: 'blockedIps'
 });
 
 const RECORDING_STATUS = Object.freeze({

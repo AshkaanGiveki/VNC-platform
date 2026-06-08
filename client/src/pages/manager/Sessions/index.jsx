@@ -92,12 +92,6 @@ export default function ManagerSessions() {
                                 <div className={styles.actions}>
                                     {s.status === 'running' && (
                                         <>
-                                            <Button size="sm" variant="secondary" onClick={() => stopMutation.mutate(s._id)}>
-                                                توقف نشست
-                                            </Button>
-                                            <Button size="sm" variant="secondary" onClick={() => pauseMutation.mutate(s._id)}>
-                                                مکث
-                                            </Button>
                                             {!s.recordingId ? (
                                                 <Button size="sm" onClick={() => startRecordingMutation.mutate(s._id)}>
                                                     شروع ضبط

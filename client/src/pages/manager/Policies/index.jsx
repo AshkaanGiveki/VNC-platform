@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import styles from './index.module.scss';
 import NoItem from '../../../components/common/NoItem';
+import crossIcon from '../../../assets/icons/cancel.png';   // reuse your existing icon
 
 const defaultOptions = {
   filePersistence: false,
@@ -28,6 +29,70 @@ const defaultOptions = {
   uploadEnabled: true,
   maxSessionDuration: 0,
   maxConcurrentSessions: 2,
+  blockedIps: [],
+};
+
+/**
+ * Small tag-input for IP addresses.
+ * - Type an IP and press `,` or `Enter` to add it.
+ * - Click `×` to remove an IP.
+ */
+const IpTagInput = ({ ips, onChange }) => {
+  const [input, setInput] = useState('');
+
+  const addIp = (ip) => {
+    const trimmed = ip.trim();
+    if (trimmed && !ips.includes(trimmed)) {
+      onChange([...ips, trimmed]);
+    }
+    setInput('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === ',' || e.key === 'Enter') {
+      e.preventDefault();
+      addIp(input);
+    }
+  };
+
+  const handleBlur = () => {
+    if (input.trim()) addIp(input);
+  };
+
+  const removeIp = (ip) => {
+    onChange(ips.filter((i) => i !== ip));
+  };
+
+  return (
+    <div className={styles.ipInputContainer}>
+      <div className={styles.ipTags}>
+        {ips.map((ip) => (
+          <span key={ip} className={styles.ipTag}>
+            {ip}
+            <button
+              type="button"
+              className={styles.ipRemoveBtn}
+              onClick={() => removeIp(ip)}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          className={styles.ipInput}
+          placeholder="IP را وارد کرده و Enter بزنید"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+        />
+      </div>
+      <small className={styles.ipHint}>
+        می‌توانید چندین IP را با کاما یا Enter جدا کنید
+      </small>
+    </div>
+  );
 };
 
 export default function ManagerPolicies() {
@@ -66,16 +131,16 @@ export default function ManagerPolicies() {
     onError: (err) => toast.error(err.response?.data?.message || 'خطا'),
   });
 
- const deleteMutation = useMutation({
-  mutationFn: (id) => deleteTemplate(orgId, id),
-  onSuccess: () => {
-    queryClient.invalidateQueries(['policies']);
-    toast.success('قانون حذف شد');
-  },
-  onError: (err) => {
-    toast.error(err.response?.data?.message || 'خطا در حذف قانون');
-  },
-});
+  const deleteMutation = useMutation({
+    mutationFn: (id) => deleteTemplate(orgId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['policies']);
+      toast.success('قانون حذف شد');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'خطا در حذف قانون');
+    },
+  });
 
   const setDefaultMutation = useMutation({
     mutationFn: (id) => setDefaultTemplate(orgId, id),
@@ -92,7 +157,10 @@ export default function ManagerPolicies() {
 
   const handleEdit = (policy) => {
     setEditingPolicy(policy);
-    setForm({ name: policy.name, options: { ...policy.options } });
+    setForm({
+      name: policy.name,
+      options: { ...policy.options },
+    });
     setModalOpen(true);
   };
 
@@ -130,10 +198,11 @@ export default function ManagerPolicies() {
         variants={{ show: { transition: { staggerChildren: 0.05 } } }}
         className={styles.list}
       >
-        {data?.data?.data?.length === 0 ?
+        {data?.data?.data?.length === 0 ? (
           <div className={styles.noItem}>
             <NoItem />
-          </div> :
+          </div>
+        ) : (
           data?.data?.data?.map((p) => (
             <motion.div
               key={p._id}
@@ -147,13 +216,15 @@ export default function ManagerPolicies() {
                   </h3>
                 </div>
                 <div className={styles.actions}>
-                    {!p.isDefault && <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setDefaultMutation.mutate(p._id)}
-                  >
-                    فعال‌سازی
-                  </Button>}
+                  {!p.isDefault && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setDefaultMutation.mutate(p._id)}
+                    >
+                      فعال‌سازی
+                    </Button>
+                  )}
                   <Button size="sm" variant="secondary" onClick={() => handleEdit(p)}>
                     ویرایش
                   </Button>
@@ -169,7 +240,8 @@ export default function ManagerPolicies() {
                 </div>
               </Card>
             </motion.div>
-          ))}
+          ))
+        )}
       </motion.div>
 
       <Modal
@@ -259,8 +331,26 @@ export default function ManagerPolicies() {
             }
             min={1}
           />
+
+          {/* IP blocking – tag input */}
+          <div className={styles.field}>
+            <label className={styles.label}>IP‌های مسدود</label>
+            <IpTagInput
+              ips={form.options.blockedIps || []}
+              onChange={(newIps) =>
+                setForm({
+                  ...form,
+                  options: { ...form.options, blockedIps: newIps },
+                })
+              }
+            />
+          </div>
+
           <div className={styles.modalActions}>
-            <Button onClick={handleSave} loading={createMutation.isLoading || updateMutation.isLoading}>
+            <Button
+              onClick={handleSave}
+              loading={createMutation.isLoading || updateMutation.isLoading}
+            >
               ذخیره
             </Button>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>

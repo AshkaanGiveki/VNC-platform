@@ -10,8 +10,8 @@ import { ROUTES } from '../../../config/routes';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
 import styles from './index.module.scss';
-import { getCsrfToken } from '../../../services/authService';
-import { setCsrfToken } from '../../../redux/slices/authSlice';
+import { useSelector } from 'react-redux';
+import { useEffect } from 'react';
 
 export default function Login() {
     const [form, setForm] = useState({ email: '', password: '' });
@@ -19,6 +19,16 @@ export default function Login() {
     const [captchaVerified, setCaptchaVerified] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { isAuthenticated, user } = useSelector(state => state.auth);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            if (user?.role === 'superadmin') navigate('/admin');
+            else if (user?.role === 'manager') navigate('/manager');
+            else if (user?.role === 'org_admin') navigate('/manager');
+            else navigate('/user');
+        }
+    }, [isAuthenticated, user, navigate]);
 
     const handleChange = (e) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -37,11 +47,7 @@ export default function Login() {
 
             const payload = res.data.data;             // { user, accessToken, refreshToken }
             dispatch(setCredentials(payload));         // only the needed fields
-            // const csrfRes = await getCsrfToken();
-            // const csrfToken = csrfRes.data.token;
-            // dispatch(setCsrfToken(csrfToken));
-            // document.cookie = `csrf-token=${csrfToken}; path=/; SameSite=Strict${process.env.NODE_ENV === 'production' ? '; Secure' : ''
-            //     }`;
+
             toast.success('ورود موفقیت‌آمیز');
             if (payload.user.role === 'superadmin') navigate('/admin');
             else if (payload.user.role === 'org_admin') navigate('/manager');
@@ -60,7 +66,7 @@ export default function Login() {
 
     return (
         <>
-            <Helmet><title>ورود | VWP</title></Helmet>
+            <Helmet><title>ورود</title></Helmet>
             <motion.div
                 className={styles.container}
                 initial={{ opacity: 0, scale: 0.95 }}

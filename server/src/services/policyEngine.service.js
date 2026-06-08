@@ -25,6 +25,7 @@ async function resolvePolicy(workspace) {
     downloadEnabled: false,
     uploadEnabled: true,
     maxSessionDuration: 0,
+    blockedIps: [],
   };
 
   // 1. Try to get organization default

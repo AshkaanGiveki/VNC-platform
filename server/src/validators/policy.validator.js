@@ -14,6 +14,7 @@ const policyOptionsSchema = Joi.object({
   downloadEnabled: Joi.boolean().optional(),
   uploadEnabled: Joi.boolean().optional(),
   maxSessionDuration: Joi.number().integer().min(0).optional(),
+  blockedIps: Joi.array().items(Joi.string().ip({ cidr: 'optional' })).optional(),
 });
 
 const createBody = Joi.object({

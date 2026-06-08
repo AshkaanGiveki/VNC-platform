@@ -15,7 +15,7 @@ export default function ManagerRecordings() {
   const orgId = user?.organizationId;
   const queryClient = useQueryClient();
 
-  const { data: recordings, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['recordings', orgId],
     queryFn: () => getRecordings({ organizationId: orgId }),
   });
@@ -31,7 +31,8 @@ export default function ManagerRecordings() {
 
   if (isLoading) return <Loader />;
 
-  const recordingsList = recordings?.data?.data || [];
+  const recordings = data?.data?.data || [];
+  console.log(recordings);
 
   return (
     <div>
@@ -42,32 +43,41 @@ export default function ManagerRecordings() {
         variants={{ show: { transition: { staggerChildren: 0.05 } } }}
         className={styles.list}
       >
-        {recordingsList.length === 0 ? (
-          <div className={styles.noItem}>
-            <NoItem />
-          </div>
+        {recordings.length === 0 ? (
+          <NoItem />
         ) : (
-          recordingsList.map((r) => (
+          recordings.map((r) => (
             <motion.div
               key={r._id}
               variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}
             >
               <Card className={styles.recordingCard}>
-                <div>
-                  <p>
-                    <strong>کاربر:</strong> {r.userId?.firstName} {r.userId?.lastName}
+                <div className={styles.right}>
+                  <p className={styles.userName}>
+                    {r.userId?.firstName} {r.userId?.lastName}
                   </p>
-                  <p><strong>وضعیت:</strong> {r.status}</p>
-                  <p><strong>مدت:</strong> {Math.round(r.duration / 60)} دقیقه</p>
+                  <p className={styles.size}> {r.size
+                    ? r.size < 1048576
+                      ? `${Math.round(r.size / 1024)} کیلوبایت`
+                      : `${Math.round(r.size / 1048576)} مگابایت`
+                    : '—'}
+                  </p>
                   <span className={styles.date}>{toJalali(r.createdAt)}</span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => deleteMutation.mutate(r._id)}
-                >
-                  حذف
-                </Button>
+                <div className={styles.left}>
+                  <p className={styles.status}>{r.status === 'ready' ? 'آماده' : r.status === 'recording' ? 'در حال ضبط' : r.status === 'processing' ? 'در حال پردازش' : 'ناموفق'}</p>
+                  <div className={styles.action}>
+                    {
+                      r.status === 'ready' && r.downloadUrl && (
+                        <div className={styles.download} onClick={() => window.open(r.downloadUrl, '_blank')}>
+                          دانلود
+                        </div>
+                      )}
+                    <div className={styles.remove} onClick={() => deleteMutation.mutate(r._id)}>
+                      حذف
+                    </div>
+                  </div>
+                </div>
               </Card>
             </motion.div>
           ))
