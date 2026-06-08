@@ -55,20 +55,16 @@ const logout = async (req, res, next) => {
 
 const forgotPassword = async (req, res, next) => {
   try {
-    // TODO: implement password reset flow
-    return success(res, { message: 'If the email exists, a reset link has been sent' }, 200);
-  } catch (err) {
-    next(err);
-  }
+    await authService.forgotPassword(req.body.email);
+    return success(res, { message: 'If the email exists, a reset link has been sent' });
+  } catch (err) { next(err); }
 };
 
 const resetPassword = async (req, res, next) => {
   try {
-    // TODO: implement
-    return success(res, { message: 'Password reset successfully' }, 200);
-  } catch (err) {
-    next(err);
-  }
+    await authService.resetPassword(req.body.token, req.body.newPassword);
+    return success(res, { message: 'Password reset successfully' });
+  } catch (err) { next(err); }
 };
 
 const me = async (req, res, next) => {

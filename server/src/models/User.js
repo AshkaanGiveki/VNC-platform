@@ -58,6 +58,12 @@ const userSchema = new mongoose.Schema(
       type: [String], // hashed refresh tokens for rotation
       select: false,
     },
+    resetPasswordToken: {
+      type: String,
+    },    
+    resetPasswordExpires: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
